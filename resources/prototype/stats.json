@@ -1,0 +1,179 @@
+{
+    "summary": {
+        "news_total": 18,
+        "news_published": 8,
+        "news_draft": 5,
+        "events_upcoming": 4,
+        "team_active": 11,
+        "messages_unread": 3
+    },
+    "publishing_trend": {
+        "labels": [
+            "Okt",
+            "Nov",
+            "Des",
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "Mei",
+            "Jun",
+            "Jul",
+            "Agu",
+            "Sep"
+        ],
+        "datasets": [
+            {
+                "label": "Berita",
+                "data": [
+                    3,
+                    5,
+                    4,
+                    7,
+                    6,
+                    8,
+                    5,
+                    9,
+                    7,
+                    6,
+                    8,
+                    4
+                ]
+            },
+            {
+                "label": "Events",
+                "data": [
+                    1,
+                    2,
+                    1,
+                    3,
+                    2,
+                    2,
+                    1,
+                    4,
+                    2,
+                    3,
+                    2,
+                    1
+                ]
+            }
+        ]
+    },
+    "status_breakdown": {
+        "labels": [
+            "Terbit",
+            "Draf",
+            "Terjadwal"
+        ],
+        "datasets": [
+            {
+                "label": "Berita",
+                "data": [
+                    8,
+                    5,
+                    5
+                ]
+            }
+        ]
+    },
+    "recent_activity": [
+        {
+            "id": 1,
+            "description": "Menerbitkan berita",
+            "causer": "Rizky Ramadhan",
+            "subject_type": "Partner",
+            "created_at": "2026-09-03 11:00:00"
+        },
+        {
+            "id": 2,
+            "description": "Mengubah anggota tim",
+            "causer": "Rina Hartati",
+            "subject_type": "Event",
+            "created_at": "2026-09-02 12:00:00"
+        },
+        {
+            "id": 3,
+            "description": "Menambah partner",
+            "causer": "Budi Santoso",
+            "subject_type": "Event",
+            "created_at": "2026-09-01 13:00:00"
+        },
+        {
+            "id": 4,
+            "description": "Mengarsipkan pesan",
+            "causer": "Rizky Ramadhan",
+            "subject_type": "Event",
+            "created_at": "2026-08-31 14:00:00"
+        },
+        {
+            "id": 5,
+            "description": "Menjadwalkan berita",
+            "causer": "Budi Santoso",
+            "subject_type": "Tim",
+            "created_at": "2026-08-30 15:00:00"
+        },
+        {
+            "id": 6,
+            "description": "Mengunggah publikasi",
+            "causer": "Doni Saputra",
+            "subject_type": "Berita",
+            "created_at": "2026-08-29 16:00:00"
+        },
+        {
+            "id": 7,
+            "description": "Mengubah pengaturan situs",
+            "causer": "Budi Santoso",
+            "subject_type": "Berita",
+            "created_at": "2026-08-28 17:00:00"
+        },
+        {
+            "id": 8,
+            "description": "Menghapus draf berita",
+            "causer": "Doni Saputra",
+            "subject_type": "Event",
+            "created_at": "2026-08-27 10:00:00"
+        }
+    ],
+    "popular_news": [
+        {
+            "id": 12,
+            "title": {
+                "id": "Pendampingan Koperasi Perikanan Desa",
+                "en": "Pendampingan Koperasi Perikanan Desa"
+            },
+            "views": 2263
+        },
+        {
+            "id": 2,
+            "title": {
+                "id": "Peluncuran Laporan Tahunan Konservasi",
+                "en": "Peluncuran Laporan Tahunan Konservasi"
+            },
+            "views": 1517
+        },
+        {
+            "id": 6,
+            "title": {
+                "id": "Pelatihan Monitoring Terumbu Karang",
+                "en": "Pelatihan Monitoring Terumbu Karang"
+            },
+            "views": 934
+        },
+        {
+            "id": 15,
+            "title": {
+                "id": "Konsultasi Publik Rencana Zonasi",
+                "en": "Konsultasi Publik Rencana Zonasi"
+            },
+            "views": 756
+        },
+        {
+            "id": 18,
+            "title": {
+                "id": "Audit Rantai Pasok Perikanan",
+                "en": "Audit Rantai Pasok Perikanan"
+            },
+            "views": 695
+        }
+    ]
+}

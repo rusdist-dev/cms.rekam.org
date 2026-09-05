@@ -1,0 +1,101 @@
+[
+    {
+        "id": 1,
+        "name": "Bagus Setiawan",
+        "email": "pengirim1@example.com",
+        "phone": "086358464899",
+        "subject": "Permintaan kerja sama",
+        "message": "Selamat siang, saya ingin menanyakan perihal permintaan kerja sama. Mohon informasinya. Terima kasih.",
+        "status": "unread",
+        "ip": "103.101.235.224",
+        "created_at": "2026-09-02 14:00:00"
+    },
+    {
+        "id": 2,
+        "name": "Rizky Ramadhan",
+        "email": "pengirim2@example.com",
+        "phone": "081346094055",
+        "subject": "Pertanyaan data publikasi",
+        "message": "Selamat siang, saya ingin menanyakan perihal pertanyaan data publikasi. Mohon informasinya. Terima kasih.",
+        "status": "unread",
+        "ip": "103.115.103.141",
+        "created_at": "2026-08-31 14:00:00"
+    },
+    {
+        "id": 3,
+        "name": "Siti Nurhaliza",
+        "email": "pengirim3@example.com",
+        "phone": "084794104665",
+        "subject": "Undangan narasumber",
+        "message": "Selamat siang, saya ingin menanyakan perihal undangan narasumber. Mohon informasinya. Terima kasih.",
+        "status": "unread",
+        "ip": "103.210.111.222",
+        "created_at": "2026-08-29 14:00:00"
+    },
+    {
+        "id": 4,
+        "name": "Fitri Handayani",
+        "email": "pengirim4@example.com",
+        "phone": "089092546565",
+        "subject": "Permintaan wawancara",
+        "message": "Selamat siang, saya ingin menanyakan perihal permintaan wawancara. Mohon informasinya. Terima kasih.",
+        "status": "archived",
+        "ip": "103.246.60.39",
+        "created_at": "2026-08-27 14:00:00"
+    },
+    {
+        "id": 5,
+        "name": "Budi Santoso",
+        "email": "pengirim5@example.com",
+        "phone": "081756849392",
+        "subject": "Laporan tautan rusak",
+        "message": "Selamat siang, saya ingin menanyakan perihal laporan tautan rusak. Mohon informasinya. Terima kasih.",
+        "status": "read",
+        "ip": "103.60.169.60",
+        "created_at": "2026-08-25 14:00:00"
+    },
+    {
+        "id": 6,
+        "name": "Rina Hartati",
+        "email": "pengirim6@example.com",
+        "phone": "083530266207",
+        "subject": "Ajakan kolaborasi riset",
+        "message": "Selamat siang, saya ingin menanyakan perihal ajakan kolaborasi riset. Mohon informasinya. Terima kasih.",
+        "status": "archived",
+        "ip": "103.68.73.2",
+        "created_at": "2026-08-23 14:00:00"
+    },
+    {
+        "id": 7,
+        "name": "Dewi Anggraini",
+        "email": "pengirim7@example.com",
+        "phone": "087727384337",
+        "subject": "Pertanyaan magang",
+        "message": "Selamat siang, saya ingin menanyakan perihal pertanyaan magang. Mohon informasinya. Terima kasih.",
+        "status": "read",
+        "ip": "103.244.33.177",
+        "created_at": "2026-08-21 14:00:00"
+    },
+    {
+        "id": 8,
+        "name": "Fitri Handayani",
+        "email": "pengirim8@example.com",
+        "phone": "084177351297",
+        "subject": "Konfirmasi kehadiran acara",
+        "message": "Selamat siang, saya ingin menanyakan perihal konfirmasi kehadiran acara. Mohon informasinya. Terima kasih.",
+        "status": "archived",
+        "ip": "103.117.231.223",
+        "created_at": "2026-08-19 14:00:00"
+    },
+    {
+        "id": 9,
+        "name": "Lestari Ayu",
+        "email": "pengirim9@example.com",
+        "phone": "086980221859",
+        "subject": "Permintaan izin penggunaan foto",
+        "message": "Selamat siang, saya ingin menanyakan perihal permintaan izin penggunaan foto. Mohon informasinya. Terima kasih.",
+        "status": "read",
+        "ip": "103.103.101.27",
+        "created_at": "2026-08-17 14:00:00"
+    }
+]

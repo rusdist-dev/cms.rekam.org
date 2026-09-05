@@ -1,0 +1,278 @@
+[
+    {
+        "id": 1,
+        "name": "Rina Hartati",
+        "slug": "rina-hartati",
+        "position": {
+            "id": "Manajer Komunikasi",
+            "en": "Manajer Komunikasi"
+        },
+        "bio": {
+            "id": "Profil singkat Rina Hartati.",
+            "en": "Profil singkat Rina Hartati."
+        },
+        "photo_url": null,
+        "group": "supervisor-board",
+        "email": "rina.hartati@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 1,
+        "is_active": true,
+        "updated_at": "2026-09-03 09:00:00"
+    },
+    {
+        "id": 2,
+        "name": "Budi Santoso",
+        "slug": "budi-santoso",
+        "position": {
+            "id": "Koordinator Lapangan",
+            "en": "Koordinator Lapangan"
+        },
+        "bio": {
+            "id": "Profil singkat Budi Santoso.",
+            "en": "Profil singkat Budi Santoso."
+        },
+        "photo_url": null,
+        "group": "chairperson",
+        "email": "budi.santoso@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 2,
+        "is_active": true,
+        "updated_at": "2026-09-02 09:00:00"
+    },
+    {
+        "id": 3,
+        "name": "Dewi Anggraini",
+        "slug": "dewi-anggraini",
+        "position": {
+            "id": "Koordinator Lapangan",
+            "en": "Koordinator Lapangan"
+        },
+        "bio": {
+            "id": "Profil singkat Dewi Anggraini.",
+            "en": "Profil singkat Dewi Anggraini."
+        },
+        "photo_url": null,
+        "group": "director",
+        "email": "dewi.anggraini@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 3,
+        "is_active": true,
+        "updated_at": "2026-09-01 09:00:00"
+    },
+    {
+        "id": 4,
+        "name": "Agus Prasetyo",
+        "slug": "agus-prasetyo",
+        "position": {
+            "id": "Koordinator Lapangan",
+            "en": "Koordinator Lapangan"
+        },
+        "bio": {
+            "id": "Profil singkat Agus Prasetyo.",
+            "en": "Profil singkat Agus Prasetyo."
+        },
+        "photo_url": null,
+        "group": "manager",
+        "email": "agus.prasetyo@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 4,
+        "is_active": true,
+        "updated_at": "2026-08-31 09:00:00"
+    },
+    {
+        "id": 5,
+        "name": "Siti Nurhaliza",
+        "slug": "siti-nurhaliza",
+        "position": {
+            "id": "Manajer Komunikasi",
+            "en": "Manajer Komunikasi"
+        },
+        "bio": {
+            "id": "Profil singkat Siti Nurhaliza.",
+            "en": "Profil singkat Siti Nurhaliza."
+        },
+        "photo_url": null,
+        "group": "advisor-board",
+        "email": "siti.nurhaliza@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 5,
+        "is_active": true,
+        "updated_at": "2026-08-30 09:00:00"
+    },
+    {
+        "id": 6,
+        "name": "Andi Wijaya",
+        "slug": "andi-wijaya",
+        "position": {
+            "id": "Penasihat Senior",
+            "en": "Penasihat Senior"
+        },
+        "bio": {
+            "id": "Profil singkat Andi Wijaya.",
+            "en": "Profil singkat Andi Wijaya."
+        },
+        "photo_url": null,
+        "group": "supervisor-board",
+        "email": "andi.wijaya@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 6,
+        "is_active": true,
+        "updated_at": "2026-08-29 09:00:00"
+    },
+    {
+        "id": 7,
+        "name": "Maya Kusuma",
+        "slug": "maya-kusuma",
+        "position": {
+            "id": "Manajer Komunikasi",
+            "en": "Manajer Komunikasi"
+        },
+        "bio": {
+            "id": "Profil singkat Maya Kusuma.",
+            "en": "Profil singkat Maya Kusuma."
+        },
+        "photo_url": null,
+        "group": "chairperson",
+        "email": "maya.kusuma@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 7,
+        "is_active": false,
+        "updated_at": "2026-08-28 09:00:00"
+    },
+    {
+        "id": 8,
+        "name": "Rizky Ramadhan",
+        "slug": "rizky-ramadhan",
+        "position": {
+            "id": "Penasihat Senior",
+            "en": "Penasihat Senior"
+        },
+        "bio": {
+            "id": "Profil singkat Rizky Ramadhan.",
+            "en": "Profil singkat Rizky Ramadhan."
+        },
+        "photo_url": null,
+        "group": "director",
+        "email": "rizky.ramadhan@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 8,
+        "is_active": true,
+        "updated_at": "2026-08-27 09:00:00"
+    },
+    {
+        "id": 9,
+        "name": "Fitri Handayani",
+        "slug": "fitri-handayani",
+        "position": {
+            "id": "Direktur Program",
+            "en": "Direktur Program"
+        },
+        "bio": {
+            "id": "Profil singkat Fitri Handayani.",
+            "en": "Profil singkat Fitri Handayani."
+        },
+        "photo_url": null,
+        "group": "manager",
+        "email": "fitri.handayani@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 9,
+        "is_active": true,
+        "updated_at": "2026-08-26 09:00:00"
+    },
+    {
+        "id": 10,
+        "name": "Doni Saputra",
+        "slug": "doni-saputra",
+        "position": {
+            "id": "Direktur Program",
+            "en": "Direktur Program"
+        },
+        "bio": {
+            "id": "Profil singkat Doni Saputra.",
+            "en": "Profil singkat Doni Saputra."
+        },
+        "photo_url": null,
+        "group": "advisor-board",
+        "email": "doni.saputra@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 10,
+        "is_active": true,
+        "updated_at": "2026-08-25 09:00:00"
+    },
+    {
+        "id": 11,
+        "name": "Lestari Ayu",
+        "slug": "lestari-ayu",
+        "position": {
+            "id": "Koordinator Lapangan",
+            "en": "Koordinator Lapangan"
+        },
+        "bio": {
+            "id": "Profil singkat Lestari Ayu.",
+            "en": "Profil singkat Lestari Ayu."
+        },
+        "photo_url": null,
+        "group": "supervisor-board",
+        "email": "lestari.ayu@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 11,
+        "is_active": true,
+        "updated_at": "2026-08-24 09:00:00"
+    },
+    {
+        "id": 12,
+        "name": "Bagus Setiawan",
+        "slug": "bagus-setiawan",
+        "position": {
+            "id": "Penasihat Senior",
+            "en": "Penasihat Senior"
+        },
+        "bio": {
+            "id": "Profil singkat Bagus Setiawan.",
+            "en": "Profil singkat Bagus Setiawan."
+        },
+        "photo_url": null,
+        "group": "chairperson",
+        "email": "bagus.setiawan@rekam.org",
+        "socials": {
+            "linkedin": null,
+            "instagram": null
+        },
+        "sort_order": 12,
+        "is_active": true,
+        "updated_at": "2026-08-23 09:00:00"
+    }
+]

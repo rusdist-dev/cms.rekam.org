@@ -1,0 +1,98 @@
+[
+    {
+        "id": 1,
+        "title": {
+            "id": "Pendirian Lembaga",
+            "en": "Pendirian Lembaga"
+        },
+        "body": {
+            "id": "Catatan pencapaian: pendirian lembaga.",
+            "en": "Catatan pencapaian: pendirian lembaga."
+        },
+        "cover_url": null,
+        "year": 2015,
+        "sort_order": 1,
+        "is_active": true,
+        "updated_at": "2026-08-25 09:00:00"
+    },
+    {
+        "id": 2,
+        "title": {
+            "id": "Program Pertama Konservasi",
+            "en": "Program Pertama Konservasi"
+        },
+        "body": {
+            "id": "Catatan pencapaian: program pertama konservasi.",
+            "en": "Catatan pencapaian: program pertama konservasi."
+        },
+        "cover_url": null,
+        "year": 2017,
+        "sort_order": 2,
+        "is_active": true,
+        "updated_at": "2026-08-15 09:00:00"
+    },
+    {
+        "id": 3,
+        "title": {
+            "id": "Kemitraan Internasional",
+            "en": "Kemitraan Internasional"
+        },
+        "body": {
+            "id": "Catatan pencapaian: kemitraan internasional.",
+            "en": "Catatan pencapaian: kemitraan internasional."
+        },
+        "cover_url": null,
+        "year": 2019,
+        "sort_order": 3,
+        "is_active": true,
+        "updated_at": "2026-08-05 09:00:00"
+    },
+    {
+        "id": 4,
+        "title": {
+            "id": "Peluncuran Ocean Accounts",
+            "en": "Peluncuran Ocean Accounts"
+        },
+        "body": {
+            "id": "Catatan pencapaian: peluncuran ocean accounts.",
+            "en": "Catatan pencapaian: peluncuran ocean accounts."
+        },
+        "cover_url": null,
+        "year": 2021,
+        "sort_order": 4,
+        "is_active": true,
+        "updated_at": "2026-07-26 09:00:00"
+    },
+    {
+        "id": 5,
+        "title": {
+            "id": "Ekspansi Wilayah Kerja",
+            "en": "Ekspansi Wilayah Kerja"
+        },
+        "body": {
+            "id": "Catatan pencapaian: ekspansi wilayah kerja.",
+            "en": "Catatan pencapaian: ekspansi wilayah kerja."
+        },
+        "cover_url": null,
+        "year": 2023,
+        "sort_order": 5,
+        "is_active": true,
+        "updated_at": "2026-07-16 09:00:00"
+    },
+    {
+        "id": 6,
+        "title": {
+            "id": "Sertifikasi Perikanan Lestari",
+            "en": "Sertifikasi Perikanan Lestari"
+        },
+        "body": {
+            "id": "Catatan pencapaian: sertifikasi perikanan lestari.",
+            "en": "Catatan pencapaian: sertifikasi perikanan lestari."
+        },
+        "cover_url": null,
+        "year": 2025,
+        "sort_order": 6,
+        "is_active": true,
+        "updated_at": "2026-07-06 09:00:00"
+    }
+]

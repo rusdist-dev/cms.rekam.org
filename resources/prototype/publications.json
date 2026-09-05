@@ -1,0 +1,154 @@
+[
+    {
+        "id": 1,
+        "title": {
+            "id": "Laporan Tahunan 2025",
+            "en": "Laporan Tahunan 2025"
+        },
+        "description": {
+            "id": "Deskripsi laporan tahunan 2025.",
+            "en": "Deskripsi laporan tahunan 2025."
+        },
+        "category": "policy-brief",
+        "file_url": null,
+        "file_name": "laporan-tahunan-2025.pdf",
+        "file_size": 5771312,
+        "cover_url": null,
+        "is_featured": true,
+        "sort_order": 1,
+        "updated_at": "2026-08-31 09:00:00"
+    },
+    {
+        "id": 2,
+        "title": {
+            "id": "Panduan Monitoring Mangrove",
+            "en": "Panduan Monitoring Mangrove"
+        },
+        "description": {
+            "id": "Deskripsi panduan monitoring mangrove.",
+            "en": "Deskripsi panduan monitoring mangrove."
+        },
+        "category": "laporan",
+        "file_url": null,
+        "file_name": "panduan-monitoring-mangrove.pdf",
+        "file_size": 708932,
+        "cover_url": null,
+        "is_featured": true,
+        "sort_order": 2,
+        "updated_at": "2026-08-27 09:00:00"
+    },
+    {
+        "id": 3,
+        "title": {
+            "id": "Kajian Ekonomi Biru",
+            "en": "Kajian Ekonomi Biru"
+        },
+        "description": {
+            "id": "Deskripsi kajian ekonomi biru.",
+            "en": "Deskripsi kajian ekonomi biru."
+        },
+        "category": "policy-brief",
+        "file_url": null,
+        "file_name": "kajian-ekonomi-biru.pdf",
+        "file_size": 6084541,
+        "cover_url": null,
+        "is_featured": false,
+        "sort_order": 3,
+        "updated_at": "2026-08-23 09:00:00"
+    },
+    {
+        "id": 4,
+        "title": {
+            "id": "Atlas Keanekaragaman Pesisir",
+            "en": "Atlas Keanekaragaman Pesisir"
+        },
+        "description": {
+            "id": "Deskripsi atlas keanekaragaman pesisir.",
+            "en": "Deskripsi atlas keanekaragaman pesisir."
+        },
+        "category": "panduan",
+        "file_url": null,
+        "file_name": "atlas-keanekaragaman-pesisir.pdf",
+        "file_size": 5628510,
+        "cover_url": null,
+        "is_featured": false,
+        "sort_order": 4,
+        "updated_at": "2026-08-19 09:00:00"
+    },
+    {
+        "id": 5,
+        "title": {
+            "id": "Policy Brief Zonasi Laut",
+            "en": "Policy Brief Zonasi Laut"
+        },
+        "description": {
+            "id": "Deskripsi policy brief zonasi laut.",
+            "en": "Deskripsi policy brief zonasi laut."
+        },
+        "category": "policy-brief",
+        "file_url": null,
+        "file_name": "policy-brief-zonasi-laut.pdf",
+        "file_size": 5914631,
+        "cover_url": null,
+        "is_featured": false,
+        "sort_order": 5,
+        "updated_at": "2026-08-15 09:00:00"
+    },
+    {
+        "id": 6,
+        "title": {
+            "id": "Laporan Karbon Biru",
+            "en": "Laporan Karbon Biru"
+        },
+        "description": {
+            "id": "Deskripsi laporan karbon biru.",
+            "en": "Deskripsi laporan karbon biru."
+        },
+        "category": "panduan",
+        "file_url": null,
+        "file_name": "laporan-karbon-biru.pdf",
+        "file_size": 2587360,
+        "cover_url": null,
+        "is_featured": false,
+        "sort_order": 6,
+        "updated_at": "2026-08-11 09:00:00"
+    },
+    {
+        "id": 7,
+        "title": {
+            "id": "Buku Saku Nelayan",
+            "en": "Buku Saku Nelayan"
+        },
+        "description": {
+            "id": "Deskripsi buku saku nelayan.",
+            "en": "Deskripsi buku saku nelayan."
+        },
+        "category": "policy-brief",
+        "file_url": null,
+        "file_name": "buku-saku-nelayan.pdf",
+        "file_size": 3436253,
+        "cover_url": null,
+        "is_featured": false,
+        "sort_order": 7,
+        "updated_at": "2026-08-07 09:00:00"
+    },
+    {
+        "id": 8,
+        "title": {
+            "id": "Studi Rantai Pasok Perikanan",
+            "en": "Studi Rantai Pasok Perikanan"
+        },
+        "description": {
+            "id": "Deskripsi studi rantai pasok perikanan.",
+            "en": "Deskripsi studi rantai pasok perikanan."
+        },
+        "category": "policy-brief",
+        "file_url": null,
+        "file_name": "studi-rantai-pasok-perikanan.pdf",
+        "file_size": 3110891,
+        "cover_url": null,
+        "is_featured": false,
+        "sort_order": 8,
+        "updated_at": "2026-08-03 09:00:00"
+    }
+]

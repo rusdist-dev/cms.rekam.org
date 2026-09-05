@@ -1,0 +1,132 @@
+[
+    {
+        "id": 1,
+        "name": "Kementerian Kelautan",
+        "title": {
+            "id": "Mitra Strategis",
+            "en": "Mitra Strategis"
+        },
+        "logo_url": null,
+        "url": "https://kementeriankelautan.org",
+        "sort_order": 1,
+        "is_active": true,
+        "updated_at": "2026-09-03 09:00:00"
+    },
+    {
+        "id": 2,
+        "name": "Universitas Pesisir",
+        "title": {
+            "id": "Mitra Pelaksana",
+            "en": "Mitra Pelaksana"
+        },
+        "logo_url": null,
+        "url": "https://universitaspesisir.org",
+        "sort_order": 2,
+        "is_active": true,
+        "updated_at": "2026-09-02 09:00:00"
+    },
+    {
+        "id": 3,
+        "name": "Yayasan Bahari",
+        "title": {
+            "id": "Mitra Riset",
+            "en": "Mitra Riset"
+        },
+        "logo_url": null,
+        "url": "https://yayasanbahari.org",
+        "sort_order": 3,
+        "is_active": true,
+        "updated_at": "2026-09-01 09:00:00"
+    },
+    {
+        "id": 4,
+        "name": "Bank Konservasi",
+        "title": {
+            "id": "Donor",
+            "en": "Donor"
+        },
+        "logo_url": null,
+        "url": "https://bankkonservasi.org",
+        "sort_order": 4,
+        "is_active": true,
+        "updated_at": "2026-08-31 09:00:00"
+    },
+    {
+        "id": 5,
+        "name": "Lembaga Riset Laut",
+        "title": {
+            "id": "Mitra Strategis",
+            "en": "Mitra Strategis"
+        },
+        "logo_url": null,
+        "url": "https://lembagarisetlaut.org",
+        "sort_order": 5,
+        "is_active": true,
+        "updated_at": "2026-08-30 09:00:00"
+    },
+    {
+        "id": 6,
+        "name": "Koperasi Nelayan Jaya",
+        "title": {
+            "id": "Mitra Pelaksana",
+            "en": "Mitra Pelaksana"
+        },
+        "logo_url": null,
+        "url": "https://koperasinelayanjaya.org",
+        "sort_order": 6,
+        "is_active": true,
+        "updated_at": "2026-08-29 09:00:00"
+    },
+    {
+        "id": 7,
+        "name": "Global Ocean Fund",
+        "title": {
+            "id": "Mitra Strategis",
+            "en": "Mitra Strategis"
+        },
+        "logo_url": null,
+        "url": "https://globaloceanfund.org",
+        "sort_order": 7,
+        "is_active": true,
+        "updated_at": "2026-08-28 09:00:00"
+    },
+    {
+        "id": 8,
+        "name": "Pusat Data Iklim",
+        "title": {
+            "id": "Donor",
+            "en": "Donor"
+        },
+        "logo_url": null,
+        "url": "https://pusatdataiklim.org",
+        "sort_order": 8,
+        "is_active": false,
+        "updated_at": "2026-08-27 09:00:00"
+    },
+    {
+        "id": 9,
+        "name": "Aliansi Hutan Lestari",
+        "title": {
+            "id": "Mitra Riset",
+            "en": "Mitra Riset"
+        },
+        "logo_url": null,
+        "url": "https://aliansihutanlestari.org",
+        "sort_order": 9,
+        "is_active": true,
+        "updated_at": "2026-08-26 09:00:00"
+    },
+    {
+        "id": 10,
+        "name": "Forum Masyarakat Adat",
+        "title": {
+            "id": "Donor",
+            "en": "Donor"
+        },
+        "logo_url": null,
+        "url": "https://forummasyarakatadat.org",
+        "sort_order": 10,
+        "is_active": true,
+        "updated_at": "2026-08-25 09:00:00"
+    }
+]
