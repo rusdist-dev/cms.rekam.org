@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Dashboard\ActivityLogController;
 use App\Http\Controllers\Dashboard\ContactMessageController;
 use App\Http\Controllers\Dashboard\DashboardController;
 use App\Http\Controllers\Dashboard\EventController;
@@ -117,6 +118,9 @@ Route::middleware(['auth', 'active', 'tenant'])->group(function () {
         Route::get('/peran/tambah', [RoleController::class, 'create'])->name('roles.create');
         Route::get('/peran/{role}/ubah', [RoleController::class, 'edit'])->name('roles.edit');
     });
+
+    Route::get('/riwayat-aktivitas', [ActivityLogController::class, 'index'])
+        ->middleware('permission:activity.view')->name('activity.index');
 });
 
 require __DIR__.'/auth.php';

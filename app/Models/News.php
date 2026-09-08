@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTranslations;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Models\Concerns\TenantModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class News extends TenantModel
 {
-    use HasFactory, HasTranslations, SoftDeletes;
+    use HasFactory, HasTranslations, LogsTenantActivity, SoftDeletes;
 
     protected $table = 'news';
 
@@ -92,5 +93,10 @@ class News extends TenantModel
     public function isPublished(): bool
     {
         return $this->status === 'published';
+    }
+
+    protected static function activityModule(): string
+    {
+        return 'news';
     }
 }

@@ -5,6 +5,7 @@ Back-office tunggal untuk mengelola konten dua company profile (**rekam.org** da
 
 - Perencanaan, arsitektur, dan roadmap → [`plan.md`](plan.md)
 - **Aturan keras implementasi** (wajib dibaca sebelum menulis kode) → [`context.md`](context.md)
+- Deploy, hardening, backup, dan menambah tenant di produksi → [`docs/deploy.md`](docs/deploy.md)
 
 ## Stack
 

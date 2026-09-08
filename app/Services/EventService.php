@@ -13,6 +13,7 @@ class EventService
     public function __construct(
         private readonly MediaService $media,
         private readonly TenantManager $tenants,
+        private readonly PublicCacheService $publicCache,
     ) {}
 
     public function create(array $data, ?UploadedFile $cover = null): Event
@@ -29,6 +30,7 @@ class EventService
             $event->save();
 
             $this->syncRundowns($event, $data['rundowns'] ?? null);
+            $this->publicCache->forget('events');
 
             return $event;
         });
@@ -55,6 +57,8 @@ class EventService
                 $this->media->delete($previousCover);
             }
 
+            $this->publicCache->forget('events');
+
             return $event;
         });
     }
@@ -62,6 +66,7 @@ class EventService
     public function delete(Event $event): void
     {
         $event->delete();
+        $this->publicCache->forget('events');
     }
 
     public function forceDelete(Event $event): void
@@ -70,6 +75,8 @@ class EventService
             $this->media->delete($event->cover_path);
             $event->forceDelete();
         });
+
+        $this->publicCache->forget('events');
     }
 
     /**

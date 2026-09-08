@@ -18,8 +18,11 @@ class FeatureFlagTest extends TenantTestCase
         // 404, not 403: for this company the module genuinely does not exist,
         // and a 403 would leak that another company has it.
         $this->get(route('milestones.index'))->assertNotFound();
-        $this->get(route('publications.index'))->assertNotFound();
         $this->get(route('units.index'))->assertOk();
+        // Confirmed 2026-09-08: rekam.org now runs Publikasi too — no longer
+        // an example of a module rekam lacks (see PublicationCrudTest for the
+        // still-covered "absent when a tenant's flag is off" case).
+        $this->get(route('publications.index'))->assertOk();
     }
 
     public function test_a_disabled_module_has_no_api_endpoint(): void
@@ -52,7 +55,8 @@ class FeatureFlagTest extends TenantTestCase
 
         $response->assertSee('href="'.route('units.index').'"', false);
         $response->assertDontSee('href="'.route('milestones.index').'"', false);
-        $response->assertDontSee('href="'.route('publications.index').'"', false);
+        // Confirmed 2026-09-08: rekam.org now runs Publikasi too.
+        $response->assertSee('href="'.route('publications.index').'"', false);
     }
 
     public function test_switching_company_changes_the_available_modules(): void

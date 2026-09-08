@@ -81,7 +81,7 @@ class DashboardShellTest extends TenantTestCase
     {
         $this->actingAsUser();
 
-        // Rekam has units, not milestones or publications.
+        // Rekam has units and (since 2026-09-08) publications, not milestones.
         $this->useTenant($this->rekam);
 
         // Assert on the nav links themselves: page copy elsewhere legitimately
@@ -89,7 +89,7 @@ class DashboardShellTest extends TenantTestCase
         $response = $this->get(route('dashboard'));
         $response->assertSee('href="'.route('units.index').'"', false);
         $response->assertDontSee('href="'.route('milestones.index').'"', false);
-        $response->assertDontSee('href="'.route('publications.index').'"', false);
+        $response->assertSee('href="'.route('publications.index').'"', false);
     }
 
     public function test_switching_tenant_changes_the_visible_modules(): void

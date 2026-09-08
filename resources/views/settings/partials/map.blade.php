@@ -1,4 +1,4 @@
-<form x-data="resourceForm('{{ route('dash-api.taxonomy.show', 'site_map') }}', { embed: '' })"
+<form x-data="settingsForm('{{ route('dash-api.settings.show', 'map') }}', { embed: '' })"
       @submit.prevent="submit()">
 
     @include('shared.form-states')

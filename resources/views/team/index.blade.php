@@ -81,5 +81,19 @@
                 </section>
             </template>
         </div>
+
+        {{-- onClose: "confirming !== null" is a comparison, not an
+             assignable variable — Cancel/Escape/X must reset `confirming`
+             directly instead of the modal's default "{{ $show }} = false".
+             (sortableList — which teamBoard composes over — has no
+             cancelDelete() method, so the reset is inline here.) --}}
+        <x-modal.confirm show="confirming !== null"
+                         on-close="confirming = null"
+                         title="Hapus anggota ini?"
+                         confirm-label="Hapus"
+                         loading="deleting"
+                         on-confirm="destroy()">
+            Foto dan data anggota akan dihapus permanen.
+        </x-modal.confirm>
     </div>
 </x-app-layout>

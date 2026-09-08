@@ -1,0 +1,631 @@
+openapi: 3.0.3
+info:
+  title: CMS Rekam — Public API
+  description: >
+    Read-only API for the compro (company-profile) websites. No session — every
+    request is authenticated by the `X-Api-Key` header, which also selects
+    which company's content is served. See docs/api-public.md for the prose
+    version of this same contract.
+  version: "1.0"
+servers:
+  - url: https://cms.rekam.org/api/v1
+    description: Production
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: News
+  - name: Events
+  - name: Team
+  - name: Publications
+  - name: Partners
+  - name: Milestones
+  - name: Units
+  - name: Settings
+  - name: Contact
+
+paths:
+  /news:
+    get:
+      tags: [News]
+      summary: List published news
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: program
+          in: query
+          description: Filter by related-program slug (only when the tenant's `news_programs` feature is on).
+          schema: { type: string }
+        - name: category
+          in: query
+          description: Filter by news category slug (either locale).
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /news/{slug}:
+    get:
+      tags: [News]
+      summary: Get one published article by slug (either locale)
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/News' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /news-categories:
+    get:
+      tags: [News]
+      summary: List news categories
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/NewsCategory' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /programs:
+    get:
+      tags: [News]
+      summary: List news programs (taxonomy options) — only when `news_programs` is on
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Option' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /events:
+    get:
+      tags: [Events]
+      summary: List published events
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: upcoming
+          in: query
+          description: '`1` to only include events that have not ended yet.'
+          schema: { type: integer, enum: [0, 1] }
+        - name: category
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /events/{slug}:
+    get:
+      tags: [Events]
+      summary: Get one published event by slug (either locale)
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK — `rundowns` is present only when the tenant's `event_rundown` feature is on.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Event' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /team:
+    get:
+      tags: [Team]
+      summary: List active team members, grouped per level
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/TeamLevelGroup' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /publications:
+    get:
+      tags: [Publications]
+      summary: List publications (only when the tenant's `publications` feature is on)
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: featured
+          in: query
+          schema: { type: string, enum: ['0', '1'] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicationListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /partners:
+    get:
+      tags: [Partners]
+      summary: List active partners, ordered for display
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartnerListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /milestones:
+    get:
+      tags: [Milestones]
+      summary: List active milestones (perikanan-only tenant)
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MilestoneListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /units:
+    get:
+      tags: [Units]
+      summary: List active units (rekam-only tenant)
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnitListResponse'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+
+  /settings:
+    get:
+      tags: [Settings]
+      summary: Merged site identity, socials, SEO defaults, map, and contact info
+      parameters:
+        - $ref: '#/components/parameters/Lang'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Settings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /contact:
+    post:
+      tags: [Contact]
+      summary: Submit the public contact form
+      description: >
+        `website` is a honeypot — leave it empty (hide it via CSS on the real
+        form). A filled honeypot still returns 201 but silently writes nothing,
+        so a bot is never told it was caught. `status`/`ip` are always set by
+        the server and cannot be supplied by the caller.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContactRequest'
+            example:
+              name: Rina Hartati
+              email: rina@example.com
+              phone: '081234567890'
+              subject: Pertanyaan
+              message: Halo, saya ingin bertanya.
+              website: ''
+      responses:
+        '201':
+          description: Accepted (also returned when the honeypot silently discarded the submission).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: Pesan Anda telah terkirim. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ModuleOff' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: Issued from Pengaturan Situs › API Key in the CMS dashboard (super admin only). Shown once per rotation.
+
+  parameters:
+    Lang:
+      name: lang
+      in: query
+      description: '`id` (default) or `en`. Blank translations fall back to Indonesian.'
+      schema: { type: string, enum: [id, en], default: id }
+    Fields:
+      name: fields
+      in: query
+      description: Comma-separated top-level field names to include, e.g. `id,title`.
+      schema: { type: string }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, default: 1, minimum: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      schema: { type: integer, default: 15 }
+
+  responses:
+    Unauthorized:
+      description: Missing, invalid, or inactive-tenant API key.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+          example: { message: 'API key tidak valid atau tidak ditemukan.' }
+    NotFound:
+      description: No record matches.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    ModuleOff:
+      description: This module is not enabled for the resolved tenant — route does not exist for it (404, not an empty list).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+    ValidationError:
+      description: Validation failed.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message: { type: string }
+              errors:
+                type: object
+                additionalProperties:
+                  type: array
+                  items: { type: string }
+    TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+
+  schemas:
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        last_page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+
+    Option:
+      type: object
+      properties:
+        value: { type: string }
+        label: { type: string }
+
+    NewsCategory:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+
+    News:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        excerpt: { type: string, nullable: true }
+        body: { type: string, nullable: true }
+        meta_title: { type: string, nullable: true }
+        meta_description: { type: string, nullable: true }
+        category:
+          type: object
+          nullable: true
+          properties:
+            slug: { type: string }
+            name: { type: string }
+        related_programs:
+          type: array
+          items: { type: string }
+          description: Present only when the tenant's `news_programs` feature is on.
+        cover_url: { type: string, nullable: true }
+        published_at: { type: string, format: date-time, nullable: true }
+        author_name: { type: string, nullable: true }
+
+    NewsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/News' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+    EventRundown:
+      type: object
+      properties:
+        time: { type: string, nullable: true, example: '09:00' }
+        title: { type: string }
+        description: { type: string, nullable: true }
+
+    Event:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        location: { type: string, nullable: true }
+        meta_title: { type: string, nullable: true }
+        meta_description: { type: string, nullable: true }
+        category: { type: string, nullable: true }
+        start_at: { type: string, format: date-time, nullable: true }
+        end_at: { type: string, format: date-time, nullable: true }
+        is_all_day: { type: boolean }
+        fee: { type: number, nullable: true }
+        fee_note: { type: string, nullable: true }
+        is_free: { type: boolean }
+        quota: { type: integer, nullable: true }
+        registration_url: { type: string, nullable: true }
+        cover_url: { type: string, nullable: true }
+        rundowns:
+          type: array
+          items: { $ref: '#/components/schemas/EventRundown' }
+          description: Present only when the tenant's `event_rundown` feature is on.
+
+    EventListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Event' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+    TeamMember:
+      type: object
+      properties:
+        id: { type: integer }
+        slug: { type: string }
+        name: { type: string }
+        position: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+        photo_url: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        socials:
+          type: object
+          properties:
+            linkedin: { type: string }
+            instagram: { type: string }
+
+    TeamLevelGroup:
+      type: object
+      properties:
+        level: { $ref: '#/components/schemas/Option' }
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/TeamMember' }
+
+    Publication:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        category: { type: string }
+        file_url: { type: string, nullable: true }
+        file_name: { type: string, nullable: true }
+        file_size: { type: integer, nullable: true }
+        cover_url: { type: string, nullable: true }
+        is_featured: { type: boolean }
+
+    PublicationListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Publication' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+    Partner:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        title: { type: string, nullable: true }
+        logo_url: { type: string, nullable: true }
+        url: { type: string, nullable: true }
+
+    PartnerListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Partner' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+    Milestone:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        body: { type: string, nullable: true }
+        cover_url: { type: string, nullable: true }
+        year: { type: integer, nullable: true }
+
+    MilestoneListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Milestone' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+    Unit:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        url: { type: string, nullable: true }
+        domain: { type: string, nullable: true }
+        logo_url: { type: string, nullable: true }
+
+    UnitListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/Unit' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+
+    Settings:
+      type: object
+      properties:
+        name: { type: string }
+        tagline: { type: string, nullable: true }
+        logo_url: { type: string, nullable: true }
+        favicon_url: { type: string, nullable: true }
+        meta_title: { type: string, nullable: true }
+        meta_description: { type: string, nullable: true }
+        og_image_url: { type: string, nullable: true }
+        keywords:
+          type: array
+          items: { type: string }
+        socials:
+          type: object
+          properties:
+            instagram: { type: string, nullable: true }
+            linkedin: { type: string, nullable: true }
+            youtube: { type: string, nullable: true }
+            facebook: { type: string, nullable: true }
+            x: { type: string, nullable: true }
+            tiktok: { type: string, nullable: true }
+        map_embed: { type: string, nullable: true }
+        contact:
+          type: object
+          properties:
+            email: { type: string, nullable: true }
+            phone: { type: string, nullable: true }
+            whatsapp: { type: string, nullable: true }
+            address: { type: string, nullable: true }
+            map_embed: { type: string, nullable: true }
+
+    ContactRequest:
+      type: object
+      required: [name, email, subject, message]
+      properties:
+        name: { type: string, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        phone: { type: string, maxLength: 32, nullable: true }
+        subject: { type: string, maxLength: 255 }
+        message: { type: string, maxLength: 5000 }
+        website:
+          type: string
+          description: Honeypot — must stay empty.
+          default: ''

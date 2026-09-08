@@ -1,7 +1,7 @@
 <x-app-layout :title="$title" :breadcrumbs="$breadcrumbs">
     {{-- Contact details live in site_settings, so they are edited here and read
          by the compro through the public settings endpoint (plan.md §2.5). --}}
-    <form x-data="resourceForm('{{ route('dash-api.taxonomy.show', 'contact_info') }}', {
+    <form x-data="settingsForm('{{ route('dash-api.contacts.settings.show') }}', {
               email: '', phone: '', whatsapp: '', address: { id: '', en: '' }, map_embed: '',
           })"
           @submit.prevent="submit()">

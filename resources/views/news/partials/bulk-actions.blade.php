@@ -1,5 +1,6 @@
-{{-- Only appears once rows are selected, so the toolbar stays quiet otherwise. --}}
-<div x-show="selected.length > 0" x-cloak class="flex items-center gap-2">
+{{-- Only appears once rows are selected, and never in the trash view — bulk
+     publish/draft/delete makes no sense on rows already soft-deleted. --}}
+<div x-show="selected.length > 0 && ! filters.trashed" x-cloak class="flex items-center gap-2">
     <span class="text-sm text-gray-500">
         <span class="font-medium text-gray-800" x-text="selected.length"></span> dipilih
     </span>

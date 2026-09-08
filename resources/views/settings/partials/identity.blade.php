@@ -1,4 +1,4 @@
-<form x-data="resourceForm('{{ route('dash-api.taxonomy.show', 'site_identity') }}', {
+<form x-data="settingsForm('{{ route('dash-api.settings.identity.show') }}', {
           name: '', tagline: { id: '', en: '' }, logo: null, favicon: null,
       })"
       @submit.prevent="submit()">
@@ -15,7 +15,7 @@
                 <x-form.lang-tabs completeness="{ id: !!form.tagline.id, en: !!form.tagline.en }">
                     @foreach (config('cms.locales') as $locale)
                         <x-form.lang-panel :locale="$locale">
-                            <x-form.field name="tagline.{{ $locale }}" label="Tagline" :required="$locale === 'id'" alpine>
+                            <x-form.field name="tagline.{{ $locale }}" label="Tagline" alpine>
                                 <x-form.input :id="'tagline.'.$locale" name="tagline.{{ $locale }}" alpine
                                               x-model="form.tagline.{{ $locale }}" />
                             </x-form.field>

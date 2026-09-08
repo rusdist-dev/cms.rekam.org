@@ -18,6 +18,12 @@ export default (endpoint, initial = [], options = {}) => extend({
     error: null,
     savedAt: null,
 
+    // Destructive actions always go through <x-modal.confirm> (context.md
+    // §7.11), so the id being confirmed lives here rather than in each page's
+    // x-data — same convention as resourceTable.js.
+    confirming: null,
+    deleting: false,
+
     init() {
         if (options.autoload !== false) this.load()
     },
@@ -97,6 +103,25 @@ export default (endpoint, initial = [], options = {}) => extend({
             this.error = e.message
         } finally {
             this.saving = false
+        }
+    },
+
+    /** Deletes the row the confirmation modal is holding. */
+    async destroy() {
+        if (this.deleting || this.confirming === null) return
+
+        this.deleting = true
+        this.error = null
+
+        try {
+            await window.api.delete(`${this.endpoint}/${this.confirming}`)
+            this.items = this.items.filter((i) => i.id !== this.confirming)
+            this.confirming = null
+        } catch (e) {
+            this.confirming = null
+            this.error = e.message
+        } finally {
+            this.deleting = false
         }
     },
 }, options.extra)

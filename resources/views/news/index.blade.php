@@ -7,10 +7,12 @@
         state would never leave even once data arrives. See resourceTable.js
         and resources/js/extend.js.
     --}}
-    <div x-data="resourceTable('{{ route('dash-api.news.index') }}', { status: '', category_id: '', program: '' }, {
+    <div x-data="resourceTable('{{ route('dash-api.news.index') }}', { status: '', category_id: '', program: '', trashed: false }, {
             sort: 'published_at',
             direction: 'desc',
             deleteUrl: @js(\App\Support\RouteTemplate::for('dash-api.news.destroy', 'news')),
+            restoreUrl: @js(\App\Support\RouteTemplate::for('dash-api.news.restore', 'news')),
+            forceDeleteUrl: @js(\App\Support\RouteTemplate::for('dash-api.news.force-destroy', 'news')),
             bulkUrl: '{{ route('dash-api.news.bulk') }}',
             extra: {
                 editUrl: @js(\App\Support\RouteTemplate::for('news.edit', 'news')),
@@ -28,6 +30,7 @@
 
             <x-slot:actions>
                 @include('news.partials.bulk-actions')
+                @include('shared.trash-toggle')
             </x-slot:actions>
         </x-table.toolbar>
 
@@ -51,12 +54,18 @@
 
             <x-table.error :colspan="6" />
 
-            <x-table.state :colspan="6" x-show="isEmpty" x-cloak>
+            <x-table.state :colspan="6" x-show="isEmpty && ! filters.trashed" x-cloak>
                 <x-empty-state title="Belum ada berita"
                                description="Mulai dengan menulis artikel pertama untuk company ini."
                                icon="newspaper">
                     <x-button :href="route('news.create')" size="sm" icon="plus">Tambah Berita</x-button>
                 </x-empty-state>
+            </x-table.state>
+
+            <x-table.state :colspan="6" x-show="isEmpty && filters.trashed" x-cloak>
+                <x-empty-state title="Tempat sampah kosong"
+                               description="Berita yang dihapus akan muncul di sini."
+                               icon="trash" />
             </x-table.state>
 
             <template x-for="item in items" :key="item.id">
@@ -78,6 +87,17 @@
                          loading="deleting"
                          on-confirm="destroy()">
             Berita akan dipindahkan ke tempat sampah dan bisa dipulihkan kembali.
+        </x-modal.confirm>
+
+        {{-- onClose: same reasoning as the modal above — "confirmingForceDelete
+             !== null" is a comparison, not an assignable variable. --}}
+        <x-modal.confirm show="confirmingForceDelete !== null"
+                         on-close="cancelForceDelete()"
+                         title="Hapus berita ini secara permanen?"
+                         confirm-label="Hapus Permanen"
+                         loading="forceDeleting"
+                         on-confirm="forceDelete()">
+            Berita akan dihapus permanen dan tidak bisa dipulihkan lagi.
         </x-modal.confirm>
     </div>
 </x-app-layout>

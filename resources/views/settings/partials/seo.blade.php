@@ -1,4 +1,4 @@
-<form x-data="resourceForm('{{ route('dash-api.taxonomy.show', 'site_seo') }}', {
+<form x-data="settingsForm('{{ route('dash-api.settings.seo.show') }}', {
           meta_title: { id: '', en: '' }, meta_description: { id: '', en: '' },
           og_image: null, keywords: [],
       })"

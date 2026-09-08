@@ -24,13 +24,23 @@ trait HasTranslations
      */
     public function trans(string $attribute, ?string $locale = null): ?string
     {
-        $locale ??= app()->getLocale();
         $value = $this->getAttribute($attribute);
 
+        return is_array($value) ? static::flatten($value, $locale) : $value;
+    }
+
+    /**
+     * The same flatten-with-fallback rule as trans(), for a raw {id,en} map
+     * that isn't a model attribute — e.g. SiteSetting::get()'s plain arrays,
+     * read by the public API's settings endpoint (plan.md Fase 6).
+     */
+    public static function flatten(?array $value, ?string $locale = null): ?string
+    {
         if (! is_array($value)) {
-            return $value;
+            return null;
         }
 
+        $locale ??= app()->getLocale();
         $translated = $value[$locale] ?? null;
 
         if (is_string($translated) && trim($translated) !== '') {

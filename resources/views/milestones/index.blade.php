@@ -4,8 +4,6 @@
     <div x-data="sortableList('{{ route('dash-api.milestones.index') }}', [], {
             extra: {
                 editUrl: @js(\App\Support\RouteTemplate::for('milestones.edit', 'milestone')),
-                confirming: null,
-                deleting: false,
             },
          })">
 
@@ -70,8 +68,9 @@
         <x-modal.confirm show="confirming !== null"
                          on-close="confirming = null"
                          title="Hapus milestone ini?"
+                         confirm-label="Hapus"
                          loading="deleting"
-                         on-confirm="deleting = true; setTimeout(() => { confirming = null; deleting = false; load() }, 400)">
+                         on-confirm="destroy()">
             Milestone akan hilang dari linimasa di website.
         </x-modal.confirm>
     </div>

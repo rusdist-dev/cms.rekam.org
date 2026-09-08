@@ -110,7 +110,7 @@ terpisah dan boleh berbeda isi.
 
 ```json
 { "news": true, "news_programs": true, "events": true, "event_rundown": true,
-  "team": true, "publications": false, "partners": true, "contacts": true,
+  "team": true, "publications": true, "partners": true, "contacts": true,
   "units": true, "milestones": false }
 ```
 
@@ -442,17 +442,20 @@ migrasi khusus tenant (`tenant/{slug}/`), atau modul di balik feature flag.
 | Events | ✅ (+ kategori, biaya, kuota) | ❌ dikonfirmasi tidak perlu | `shared/` | `events` |
 | Event rundown | ✅ | ❌ | `shared/` | `event_rundown` |
 | Tim | ✅ 5 level | ✅ 3 level | `shared/` | `team` |
-| Publikasi | ❌ dikonfirmasi tidak perlu | ✅ | `shared/` | `publications` |
+| Publikasi | ✅ (sejak 8 September 2026) | ✅ | `shared/` | `publications` |
 | Partner | ✅ | ✅ **kolom identik** | `shared/` | `partners` |
 | Kontak (info + inbox pesan) | ❓ | ❓ | `shared/` | `contacts` |
 | **Milestone** | ❌ | ✅ | `tenant/perikanan/` | `milestones` |
 | **Unit** | ✅ | ❌ | `tenant/rekam/` | `units` |
 
-Dikonfirmasi 4 September 2026: rekam.org **tidak** memakai modul Publikasi, dan
-perikanan.org **tidak** memakai Events maupun rundown. Keduanya tetap berada di
-`tenant/shared/` dengan flag mati — inilah gunanya pola "kolom di shared, kapabilitas
-per flag": jawaban ini tidak menuntut perubahan skema sama sekali, dan modulnya siap
-dinyalakan bila kebutuhannya berubah.
+Dikonfirmasi 4 September 2026: perikanan.org **tidak** memakai Events maupun rundown —
+tetap di `tenant/shared/` dengan flag mati. Publikasi awalnya juga dikonfirmasi tidak
+dipakai rekam.org pada tanggal yang sama, tapi **kebutuhan berubah**: sejak 8 September
+2026 rekam.org memakai modul Publikasi juga, tanpa perubahan skema sama sekali — hanya
+`tenants.features.publications` dinyalakan dan taksonomi `pub.categories` diisi untuk
+rekam (lihat `database/seeders/Tenant/Rekam/RekamSeeder.php`). Inilah gunanya pola
+"kolom di shared, kapabilitas per flag": modulnya sudah siap dinyalakan begitu
+kebutuhannya berubah.
 
 **Temuan penting:** `related_programs` dibutuhkan **kedua** company, hanya beda daftar opsi
 (rekam: forest/urban/ocean · perikanan: 6 program kelautan). Karena opsi memang sudah dirancang
@@ -561,11 +564,12 @@ Karena kedua company memakai kolom yang sama, modul partner sepenuhnya berada di
 ```json
 { "news": true, "news_programs": true, "events": true, "event_rundown": true,
   "team": true, "partners": true, "contacts": true, "units": true,
-  "publications": false, "milestones": false }
+  "publications": true, "milestones": false }
 ```
 
-`publications: false` sudah **dikonfirmasi**, bukan lagi asumsi: rekam.org tidak memakai
-modul Publikasi.
+`publications: false` sempat **dikonfirmasi** 4 September 2026 (rekam.org tidak memakai
+modul Publikasi), tapi kebutuhan berubah 8 September 2026 — lihat §5.1 dan §5.5 q1.
+`milestones: false` masih berlaku: milestone tetap eksklusif perikanan.org.
 
 ### 5.3 perikanan.org (`tenant: perikanan`)
 
@@ -669,8 +673,8 @@ Sisanya tidak memblokir pekerjaan.
 
 | # | Pertanyaan | Asumsi kerja saat ini |
 |---|---|---|
-| 1 ✅ | Apakah rekam.org butuh modul **Publikasi**? | **Terjawab: tidak.** Skema tetap di `shared/`, flag rekam mati. |
-| 2 ✅ | Bila ya, apakah butuh metadata ilmiah (authors, journal, year, DOI)? | **Gugur** — rekam tidak memakai modul ini. Perikanan cukup title/description/category/file/image. |
+| 1 ✅ | Apakah rekam.org butuh modul **Publikasi**? | **Terjawab 4 Sep 2026: tidak** — lalu **berubah 8 Sep 2026: ya.** Flag rekam kini hidup, taksonomi `pub.categories` diisi sama seperti perikanan (lihat `RekamSeeder`). Skema `shared/` tidak berubah. |
+| 2 ✅ | Bila ya, apakah butuh metadata ilmiah (authors, journal, year, DOI)? | Belum diminta untuk rekam — skema tetap title/description/category/file/image seperti perikanan. Tanyakan ulang bila kebutuhan itu muncul. |
 | 3 ✅ | Apakah perikanan.org butuh modul **Events** (+ rundown)? | **Terjawab: tidak.** Skema tetap di `shared/`, flag `events` dan `event_rundown` perikanan mati. |
 | 4 | Apakah kedua company butuh modul **Kontak** (info kontak + inbox pesan dari form compro)? | Ya, flag hidup di keduanya |
 | 5 | **Milestone**: tampil sebagai timeline? | Ya → ada `year` (wajib) + `sort_order`. Bila bukan timeline, `year` dilepas |

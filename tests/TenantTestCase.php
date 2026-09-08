@@ -45,11 +45,13 @@ abstract class TenantTestCase extends TestCase
             'news' => true, 'news_programs' => true, 'events' => true,
             'event_rundown' => true, 'team' => true, 'partners' => true,
             'contacts' => true, 'units' => true,
-            'publications' => false, 'milestones' => false,
+            // Confirmed 2026-09-08: rekam.org now runs Publikasi too.
+            'publications' => true, 'milestones' => false,
         ]);
 
-        // Confirmed flags (plan.md §5.2.g, §5.3.f): perikanan runs publications
-        // and milestones but no events; rekam is the mirror image.
+        // Confirmed flags (plan.md §5.2.g, §5.3.f): perikanan runs milestones
+        // but no events; rekam runs neither milestones nor events' mirror
+        // (units). Both now run publications.
         $this->perikanan = $this->makeTenant('perikanan', 'Perikanan', [
             'news' => true, 'news_programs' => true, 'events' => false,
             'event_rundown' => false, 'team' => true, 'partners' => true,

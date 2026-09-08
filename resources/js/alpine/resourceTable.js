@@ -10,6 +10,10 @@ export default (endpoint, initialFilters = {}, options = {}) => extend({
     endpoint,
     // URL template for the row's delete endpoint, e.g. '/dash-api/v1/users/__ID__'.
     deleteUrl: options.deleteUrl ?? null,
+    // Recycle-bin templates — only set by pages with a soft-delete trash view
+    // (news, events). Both null elsewhere, so every other page is unaffected.
+    restoreUrl: options.restoreUrl ?? null,
+    forceDeleteUrl: options.forceDeleteUrl ?? null,
     // Endpoint for publish/draft/delete on the current selection.
     bulkUrl: options.bulkUrl ?? null,
     items: [],
@@ -27,6 +31,11 @@ export default (endpoint, initialFilters = {}, options = {}) => extend({
     deleting: false,
     confirmingBulkDelete: false,
     bulking: false,
+
+    // Force-delete has its own confirmation, separate from `confirming` above
+    // — restoring is not destructive and needs none.
+    confirmingForceDelete: null,
+    forceDeleting: false,
 
     sort: options.sort ?? null,
     direction: options.direction ?? 'desc',
@@ -149,6 +158,45 @@ export default (endpoint, initialFilters = {}, options = {}) => extend({
             this.error = e.message
         } finally {
             this.deleting = false
+        }
+    },
+
+    /** Restores a trashed row. Not destructive, so no confirmation modal. */
+    async restore(id) {
+        this.error = null
+
+        try {
+            await window.api.post(this.restoreUrl.replace('__ID__', id))
+            await this.refresh()
+        } catch (e) {
+            this.error = e.message
+        }
+    },
+
+    confirmForceDelete(id) {
+        this.confirmingForceDelete = id
+    },
+
+    cancelForceDelete() {
+        this.confirmingForceDelete = null
+    },
+
+    /** Permanently deletes the row the force-delete modal is holding. */
+    async forceDelete() {
+        if (this.forceDeleting || this.confirmingForceDelete === null) return
+
+        this.forceDeleting = true
+        this.error = null
+
+        try {
+            await window.api.delete(this.forceDeleteUrl.replace('__ID__', this.confirmingForceDelete))
+            this.confirmingForceDelete = null
+            await this.refresh()
+        } catch (e) {
+            this.confirmingForceDelete = null
+            this.error = e.message
+        } finally {
+            this.forceDeleting = false
         }
     },
 

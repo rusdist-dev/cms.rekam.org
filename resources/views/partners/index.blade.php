@@ -4,8 +4,6 @@
     <div x-data="sortableList('{{ route('dash-api.partners.index') }}', [], {
             extra: {
                 editUrl: @js(\App\Support\RouteTemplate::for('partners.edit', 'partner')),
-                confirming: null,
-                deleting: false,
             },
          })">
 
@@ -65,8 +63,9 @@
         <x-modal.confirm show="confirming !== null"
                          on-close="confirming = null"
                          title="Hapus partner ini?"
+                         confirm-label="Hapus"
                          loading="deleting"
-                         on-confirm="deleting = true; setTimeout(() => { confirming = null; deleting = false; load() }, 400)">
+                         on-confirm="destroy()">
             Logo dan data partner akan dihapus permanen.
         </x-modal.confirm>
     </div>

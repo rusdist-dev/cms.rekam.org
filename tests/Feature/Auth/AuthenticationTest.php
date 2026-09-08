@@ -52,4 +52,25 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_login_locks_out_after_too_many_failed_attempts(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->post('/login', ['email' => $user->email, 'password' => 'wrong-password']);
+        }
+
+        // The 6th attempt is rejected by the lockout itself, even with the
+        // correct password — RateLimiter::hit() during the 5 failures above
+        // is what LoginRequest::ensureIsNotRateLimited() now blocks on.
+        $response = $this->post('/login', ['email' => $user->email, 'password' => 'password']);
+
+        $this->assertGuest();
+        $response->assertSessionHasErrors('email');
+        $this->assertStringContainsString(
+            'Terlalu banyak percobaan masuk',
+            session('errors')->first('email'),
+        );
+    }
 }

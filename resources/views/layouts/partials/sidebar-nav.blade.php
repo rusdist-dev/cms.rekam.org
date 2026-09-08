@@ -56,7 +56,7 @@
     @endcan
 @endfeature
 
-@canany(['settings.view', 'tenants.view', 'users.view', 'roles.view'])
+@canany(['settings.view', 'tenants.view', 'users.view', 'roles.view', 'activity.view'])
     <x-sidebar.group name="sistem" label="Sistem">
         @can('settings.view')
             <x-sidebar.item route="settings.index" icon="cog-6-tooth" label="Pengaturan" />
@@ -72,6 +72,10 @@
 
         @can('roles.view')
             <x-sidebar.item route="roles.index" icon="shield-check" label="Peran & Izin" />
+        @endcan
+
+        @can('activity.view')
+            <x-sidebar.item route="activity.index" icon="clock" label="Riwayat Aktivitas" />
         @endcan
     </x-sidebar.group>
 @endcanany

@@ -44,6 +44,9 @@ class PageEndpointsResolveTest extends TenantTestCase
             'tim form' => ['rekam', 'team.create'],
             'partner index' => ['rekam', 'partners.index'],
             'unit index' => ['rekam', 'units.index'],
+            // Confirmed 2026-09-08: rekam.org now runs Publikasi too.
+            'publikasi index (rekam)' => ['rekam', 'publications.index'],
+            'publikasi form (rekam)' => ['rekam', 'publications.create'],
             'kontak index' => ['rekam', 'contacts.index'],
             'pengguna index' => ['rekam', 'users.index'],
             'pengguna form' => ['rekam', 'users.create'],

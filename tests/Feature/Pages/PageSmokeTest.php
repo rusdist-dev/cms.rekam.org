@@ -40,6 +40,9 @@ class PageSmokeTest extends TenantTestCase
             'tim ubah' => ['team.edit', ['member' => 1]],
             'partner index' => ['partners.index', []],
             'partner tambah' => ['partners.create', []],
+            // Confirmed 2026-09-08: rekam.org now runs Publikasi too.
+            'publikasi index' => ['publications.index', []],
+            'publikasi tambah' => ['publications.create', []],
             'kontak index' => ['contacts.index', []],
             'kontak detail' => ['contacts.show', ['message' => 1]],
             'kontak pengaturan' => ['contacts.settings', []],
@@ -150,6 +153,13 @@ class PageSmokeTest extends TenantTestCase
             }
 
             if (str_starts_with($name, 'ignition.') || str_starts_with($name, 'api.')) {
+                continue;
+            }
+
+            // The public compro API (routes/api.php) is authenticated by
+            // X-Api-Key, not a session — see ResolvePublicTenant (plan.md
+            // Fase 6).
+            if (str_starts_with($name, 'public.')) {
                 continue;
             }
 

@@ -1,4 +1,4 @@
-<form x-data="resourceForm('{{ route('dash-api.taxonomy.show', 'site_socials') }}', {
+<form x-data="settingsForm('{{ route('dash-api.settings.show', 'socials') }}', {
           instagram: '', linkedin: '', youtube: '', facebook: '', x: '', tiktok: '',
       })"
       @submit.prevent="submit()">

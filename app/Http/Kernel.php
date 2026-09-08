@@ -28,6 +28,7 @@ class Kernel extends HttpKernel
         \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
         \App\Http\Middleware\EnsureUserIsActive::class,
         \App\Http\Middleware\ResolveTenant::class,
+        \App\Http\Middleware\ResolvePublicTenant::class,
         \Illuminate\Routing\Middleware\ThrottleRequests::class,
         \Illuminate\Routing\Middleware\ThrottleRequestsWithRedis::class,
         \Illuminate\Contracts\Session\Middleware\AuthenticatesSessions::class,
@@ -50,6 +51,7 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
+        \App\Http\Middleware\SecurityHeaders::class,
     ];
 
     /**
@@ -90,6 +92,8 @@ class Kernel extends HttpKernel
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
         'feature' => \App\Http\Middleware\EnsureTenantFeature::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+        'public.locale' => \App\Http\Middleware\SetPublicLocale::class,
+        'resolve.public.tenant' => \App\Http\Middleware\ResolvePublicTenant::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
         'tenant' => \App\Http\Middleware\ResolveTenant::class,
         'guest' => \App\Http\Middleware\RedirectIfAuthenticated::class,

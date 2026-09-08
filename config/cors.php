@@ -19,7 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    // Restricted to the compro domains — never '*' (plan.md Fase 6, context.md
+    // §6). The public API serves session-less requests straight from browsers
+    // on rekam.org/perikanan.org, so this is the only thing standing between
+    // "any site can read our content cross-origin" and "only ours can".
+    'allowed_origins' => config('cms.public_api.allowed_origins'),
 
     'allowed_origins_patterns' => [],
 

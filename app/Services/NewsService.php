@@ -13,7 +13,10 @@ use Illuminate\Support\Facades\DB;
  */
 class NewsService
 {
-    public function __construct(private readonly MediaService $media) {}
+    public function __construct(
+        private readonly MediaService $media,
+        private readonly PublicCacheService $publicCache,
+    ) {}
 
     public function create(array $data, ?UploadedFile $cover = null): News
     {
@@ -27,6 +30,7 @@ class NewsService
             }
 
             $news->save();
+            $this->publicCache->forget('news');
 
             return $news;
         });
@@ -53,6 +57,8 @@ class NewsService
                 $this->media->delete($previousCover);
             }
 
+            $this->publicCache->forget('news');
+
             return $news;
         });
     }
@@ -62,6 +68,7 @@ class NewsService
         // Soft delete: the cover stays, because a restore must bring the whole
         // article back (plan.md §5.4).
         $news->delete();
+        $this->publicCache->forget('news');
     }
 
     public function forceDelete(News $news): void
@@ -70,6 +77,8 @@ class NewsService
             $this->media->delete($news->cover_path);
             $news->forceDelete();
         });
+
+        $this->publicCache->forget('news');
     }
 
     /** Bulk publish/draft/delete from the index page's selection. */
@@ -77,12 +86,16 @@ class NewsService
     {
         $query = News::whereIn('id', $ids);
 
-        return match ($action) {
+        $affected = match ($action) {
             'publish' => $query->get()->each(fn (News $n) => $this->publish($n))->count(),
             'draft' => $query->update(['status' => 'draft']),
             'delete' => $query->get()->each(fn (News $n) => $this->delete($n))->count(),
             default => 0,
         };
+
+        $this->publicCache->forget('news');
+
+        return $affected;
     }
 
     private function publish(News $news): void

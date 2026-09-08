@@ -33,7 +33,8 @@ class TenantSeeder extends Seeder
                 'partners' => true,
                 'contacts' => true,
                 'units' => true,
-                'publications' => false,
+                // Confirmed 2026-09-08: rekam.org now runs Publikasi too.
+                'publications' => true,
                 'milestones' => false,
             ],
         ],

@@ -1,21 +1,21 @@
 <x-app-layout :title="$title" :breadcrumbs="$breadcrumbs">
-    {{-- Direct function call, not `{ ...apiResource(...), confirming }` — see
-         apiResource.js and resources/js/extend.js. Spreading would freeze
-         isReady/isEmpty to whatever they were before the fetch resolved
-         (isReady=false, since `data` starts null), so the loaded message
-         would never actually appear. --}}
-    <div x-data="apiResource('{{ route('dash-api.contacts.show', $recordId) }}', null, {
-            extra: {
-                confirming: false,
-                deleting: false,
-            },
-         })">
+    {{-- The record fetch plus archive()/destroy() live in
+         resources/js/alpine/contactDetail.js — see that file and
+         resources/js/extend.js for why this must be a direct function call,
+         not `{ ...apiResource(...), confirming }`. --}}
+    <div x-data="contactDetail(
+            '{{ route('dash-api.contacts.show', $recordId) }}',
+            '{{ route('dash-api.contacts.archive', $recordId) }}',
+            '{{ route('dash-api.contacts.destroy', $recordId) }}',
+            '{{ route('contacts.index') }}',
+         )">
 
         <x-page-header title="Detail Pesan" :back="route('contacts.index')">
             <x-slot:actions>
                 {{-- Replies go out through the reader's own mail client
                      (plan.md §2.5) — the CMS never sends mail on their behalf. --}}
-                <x-button variant="secondary" icon="archive-box" x-show="isReady" x-cloak>
+                <x-button variant="secondary" icon="archive-box" x-show="isReady && data?.status !== 'archived'" x-cloak
+                          loading="archiving" @click="archive()">
                     Arsipkan
                 </x-button>
 
@@ -120,9 +120,11 @@
         </div>
 
         <x-modal.confirm show="confirming"
+                         on-close="confirming = false"
                          title="Hapus pesan ini?"
+                         confirm-label="Hapus"
                          loading="deleting"
-                         on-confirm="deleting = true; window.location.assign('{{ route('contacts.index') }}')">
+                         on-confirm="destroy()">
             Pesan akan dihapus permanen dan tidak bisa dipulihkan.
         </x-modal.confirm>
     </div>

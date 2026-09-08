@@ -7,6 +7,7 @@
     <div x-data="resourceTable('{{ route('dash-api.publications.index') }}', { category: '', is_featured: '' }, {
             sort: 'sort_order',
             direction: 'asc',
+            deleteUrl: @js(\App\Support\RouteTemplate::for('dash-api.publications.destroy', 'publication')),
             extra: {
                 editUrl: @js(\App\Support\RouteTemplate::for('publications.edit', 'publication')),
             },
@@ -113,8 +114,9 @@
         <x-modal.confirm show="confirming !== null"
                          on-close="cancelDelete()"
                          title="Hapus publikasi ini?"
+                         confirm-label="Hapus"
                          loading="deleting"
-                         on-confirm="deleting = true; setTimeout(() => { confirming = null; deleting = false; refresh() }, 400)">
+                         on-confirm="destroy()">
             Berkas PDF yang terlampir juga akan dihapus.
         </x-modal.confirm>
     </div>

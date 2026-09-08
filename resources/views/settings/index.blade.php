@@ -8,6 +8,6 @@
         <x-tab-panel name="seo">@include('settings.partials.seo')</x-tab-panel>
         <x-tab-panel name="peta">@include('settings.partials.map')</x-tab-panel>
         <x-tab-panel name="taksonomi">@include('settings.partials.taxonomy')</x-tab-panel>
-        <x-tab-panel name="api">@include('settings.partials.api-key')</x-tab-panel>
+        <x-tab-panel name="api">@include('settings.partials.api-key', ['currentTenant' => $currentTenant])</x-tab-panel>
     </x-tabs>
 </x-app-layout>

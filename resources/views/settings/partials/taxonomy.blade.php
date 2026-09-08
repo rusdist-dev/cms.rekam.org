@@ -6,12 +6,18 @@
         mengubah pilihan langsung berlaku di formulir konten tanpa perlu rilis baru.
     </x-alert>
 
+    {{-- News categories are a real relational table with their own CRUD
+         (Fase 3, NewsCategoryApiController) — not a site_settings option list
+         like the others below, so they get a dedicated widget rather than
+         the generic slug/label repeater. --}}
+    @feature('news')
+        @include('settings.partials.news-category-list')
+    @endfeature
+
     @php
         $lists = [
             ['group' => 'team_levels', 'title' => 'Level Tim', 'icon' => 'user-group', 'feature' => 'team',
              'hint' => 'Urutan di sini menentukan urutan kelompok pada halaman tim.'],
-            ['group' => 'news_categories', 'title' => 'Kategori Berita', 'icon' => 'newspaper', 'feature' => 'news',
-             'hint' => null],
             ['group' => 'news_programs', 'title' => 'Program Berita', 'icon' => 'swatch', 'feature' => 'news_programs',
              'hint' => 'Dipakai pada kolom “Program Terkait” di formulir berita.'],
             ['group' => 'event_categories', 'title' => 'Kategori Event', 'icon' => 'calendar-days', 'feature' => 'events',

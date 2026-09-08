@@ -91,4 +91,48 @@ class SlugMaker
 
         return $query->exists();
     }
+
+    /**
+     * Same suffixing behaviour as {@see forTranslatable()}, for a model whose
+     * slug is a single plain column rather than a per-locale JSON one (a
+     * person's name has no ID/EN version to key off).
+     */
+    public static function uniquePlain(
+        string $modelClass,
+        string $source,
+        ?int $ignoreId = null,
+        string $column = 'slug',
+    ): string {
+        $base = Str::slug($source);
+        $base = $base !== '' ? $base : 'item';
+        $candidate = $base;
+        $suffix = 1;
+
+        while (self::takenPlain($modelClass, $candidate, $ignoreId, $column)) {
+            $suffix++;
+            $candidate = "{$base}-{$suffix}";
+        }
+
+        return $candidate;
+    }
+
+    private static function takenPlain(
+        string $modelClass,
+        string $slug,
+        ?int $ignoreId,
+        string $column,
+    ): bool {
+        /** @var Model $modelClass */
+        $query = $modelClass::query()->where($column, $slug);
+
+        if (method_exists($modelClass, 'bootSoftDeletes')) {
+            $query->withTrashed();
+        }
+
+        if ($ignoreId !== null) {
+            $query->whereKeyNot($ignoreId);
+        }
+
+        return $query->exists();
+    }
 }

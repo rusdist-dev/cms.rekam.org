@@ -1,10 +1,12 @@
 <x-app-layout :title="$title" :breadcrumbs="$breadcrumbs">
     {{-- Direct function call, not `{ ...resourceTable(...), editUrl }` — see
          resourceTable.js and resources/js/extend.js. --}}
-    <div x-data="resourceTable('{{ route('dash-api.events.index') }}', { status: '', category: '' }, {
+    <div x-data="resourceTable('{{ route('dash-api.events.index') }}', { status: '', category: '', trashed: false }, {
             sort: 'start_at',
             direction: 'desc',
             deleteUrl: @js(\App\Support\RouteTemplate::for('dash-api.events.destroy', 'event')),
+            restoreUrl: @js(\App\Support\RouteTemplate::for('dash-api.events.restore', 'event')),
+            forceDeleteUrl: @js(\App\Support\RouteTemplate::for('dash-api.events.force-destroy', 'event')),
             extra: {
                 editUrl: @js(\App\Support\RouteTemplate::for('events.edit', 'event')),
             },
@@ -35,6 +37,10 @@
                     </template>
                 </select>
             </div>
+
+            <x-slot:actions>
+                @include('shared.trash-toggle')
+            </x-slot:actions>
         </x-table.toolbar>
 
         <x-table :headers="[
@@ -58,12 +64,18 @@
 
             <x-table.error :colspan="7" />
 
-            <x-table.state :colspan="7" x-show="isEmpty" x-cloak>
+            <x-table.state :colspan="7" x-show="isEmpty && ! filters.trashed" x-cloak>
                 <x-empty-state title="Belum ada event"
                                description="Buat acara pertama agar tampil di website company."
                                icon="calendar-days">
                     <x-button :href="route('events.create')" size="sm" icon="plus">Tambah Event</x-button>
                 </x-empty-state>
+            </x-table.state>
+
+            <x-table.state :colspan="7" x-show="isEmpty && filters.trashed" x-cloak>
+                <x-empty-state title="Tempat sampah kosong"
+                               description="Event yang dihapus akan muncul di sini."
+                               icon="trash" />
             </x-table.state>
 
             <template x-for="item in items" :key="item.id">
@@ -84,6 +96,17 @@
                          loading="deleting"
                          on-confirm="destroy()">
             Event beserta rundown-nya akan dihapus.
+        </x-modal.confirm>
+
+        {{-- onClose: same reasoning as the modal above — "confirmingForceDelete
+             !== null" is a comparison, not an assignable variable. --}}
+        <x-modal.confirm show="confirmingForceDelete !== null"
+                         on-close="cancelForceDelete()"
+                         title="Hapus event ini secara permanen?"
+                         confirm-label="Hapus Permanen"
+                         loading="forceDeleting"
+                         on-confirm="forceDelete()">
+            Event akan dihapus permanen dan tidak bisa dipulihkan lagi.
         </x-modal.confirm>
     </div>
 </x-app-layout>

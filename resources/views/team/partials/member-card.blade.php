@@ -29,9 +29,17 @@
         </div>
     </div>
 
-    <a :href="editUrl.replace('__ID__', member.id)"
-       class="rounded p-1.5 text-gray-400 opacity-0 transition hover:bg-gray-100 hover:text-primary-600 focus:opacity-100 group-hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-       :aria-label="'Ubah ' + member.name">
-        <x-icon name="pencil-square" class="h-4 w-4" />
-    </a>
+    <div class="flex shrink-0 items-center gap-0.5 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+        <a :href="editUrl.replace('__ID__', member.id)"
+           class="rounded p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+           :aria-label="'Ubah ' + member.name">
+            <x-icon name="pencil-square" class="h-4 w-4" />
+        </a>
+
+        <button type="button" @click="confirming = member.id"
+                class="rounded p-1.5 text-gray-400 transition hover:bg-danger-50 hover:text-danger-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger-500"
+                :aria-label="'Hapus ' + member.name">
+            <x-icon name="trash" class="h-4 w-4" />
+        </button>
+    </div>
 </div>

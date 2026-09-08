@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasTranslations;
+use App\Models\Concerns\LogsTenantActivity;
 use App\Models\Concerns\TenantModel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Event extends TenantModel
 {
-    use HasFactory, HasTranslations, SoftDeletes;
+    use HasFactory, HasTranslations, LogsTenantActivity, SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -86,5 +87,10 @@ class Event extends TenantModel
     public function isFree(): bool
     {
         return $this->fee === null || (float) $this->fee === 0.0;
+    }
+
+    protected static function activityModule(): string
+    {
+        return 'events';
     }
 }

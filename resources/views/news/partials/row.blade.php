@@ -56,7 +56,24 @@
 </x-table.td>
 
 <x-table.td align="right">
-    <x-table.row-actions
-        edit-url="editUrl.replace('__ID__', item.id)"
-        on-delete="confirming = item.id" />
+    <template x-if="! filters.trashed">
+        <x-table.row-actions
+            edit-url="editUrl.replace('__ID__', item.id)"
+            on-delete="confirming = item.id" />
+    </template>
+
+    <template x-if="filters.trashed">
+        <div class="flex items-center justify-end gap-0.5">
+            <button type="button" @click="restore(item.id)"
+                    class="rounded p-1.5 text-gray-400 transition hover:bg-success-50 hover:text-success-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-success-500"
+                    aria-label="Pulihkan">
+                <x-icon name="arrow-uturn-left" class="h-4 w-4" />
+            </button>
+            <button type="button" @click="confirmForceDelete(item.id)"
+                    class="rounded p-1.5 text-gray-400 transition hover:bg-danger-50 hover:text-danger-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-danger-500"
+                    aria-label="Hapus permanen">
+                <x-icon name="trash" class="h-4 w-4" />
+            </button>
+        </div>
+    </template>
 </x-table.td>

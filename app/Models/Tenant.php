@@ -111,6 +111,27 @@ class Tenant extends Model
         return $this->api_key !== null && Hash::check($plain, $this->api_key);
     }
 
+    /**
+     * Resolves a submitted plaintext key to its tenant, for the public API.
+     *
+     * The key is always `{slug}_{random}` (see rotateApiKey()), so this is a
+     * single indexed lookup by slug plus one bcrypt check — not a loop over
+     * every tenant hashing the same key against each one.
+     */
+    public static function findByApiKey(string $plain): ?self
+    {
+        $slug = Str::before($plain, '_');
+
+        if ($slug === $plain) {
+            // No underscore at all — not a key this app ever issued.
+            return null;
+        }
+
+        $tenant = static::active()->where('slug', $slug)->first();
+
+        return $tenant && $tenant->matchesApiKey($plain) ? $tenant : null;
+    }
+
     /** Database name derived from the slug, used when provisioning a tenant. */
     public static function databaseNameFor(string $slug): string
     {

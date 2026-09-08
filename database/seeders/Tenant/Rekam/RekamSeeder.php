@@ -40,5 +40,15 @@ class RekamSeeder extends Seeder
             ['diskusi', 'Diskusi Publik', 'Public Discussion'],
             ['kunjungan', 'Kunjungan Lapangan', 'Field Trip'],
         ]);
+
+        // Confirmed 2026-09-08: rekam.org now runs Publikasi too — same
+        // starting categories as perikanan (plan.md §5.3.a), an editor can
+        // rename/add from here without a deploy (context.md §5.12).
+        $this->seedTaxonomy('pub', 'categories', [
+            ['laporan', 'Laporan', 'Report'],
+            ['panduan', 'Panduan', 'Guideline'],
+            ['policy-brief', 'Policy Brief', 'Policy Brief'],
+            ['jurnal', 'Jurnal', 'Journal'],
+        ]);
     }
 }

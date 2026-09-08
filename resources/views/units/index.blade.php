@@ -4,8 +4,6 @@
     <div x-data="sortableList('{{ route('dash-api.units.index') }}', [], {
             extra: {
                 editUrl: @js(\App\Support\RouteTemplate::for('units.edit', 'unit')),
-                confirming: null,
-                deleting: false,
             },
          })">
 
@@ -70,8 +68,9 @@
         <x-modal.confirm show="confirming !== null"
                          on-close="confirming = null"
                          title="Hapus unit ini?"
+                         confirm-label="Hapus"
                          loading="deleting"
-                         on-confirm="deleting = true; setTimeout(() => { confirming = null; deleting = false; load() }, 400)">
+                         on-confirm="destroy()">
             Unit akan hilang dari daftar di website company.
         </x-modal.confirm>
     </div>

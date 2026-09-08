@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DashApi\Concerns;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -54,6 +55,28 @@ trait PaginatesJson
                 'last_page' => $page->lastPage(),
                 'per_page' => $page->perPage(),
                 'total' => $page->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * The same {data, meta} envelope as paginate(), but for a module driven by
+     * resources/js/alpine/sortableList.js — that client never sends `page`,
+     * it expects `data` to already be the whole ordered set (dragging item 16
+     * into position would otherwise be silently impossible: paginate() here
+     * would truncate the list to config('cms.per_page') rows before the drag
+     * handler ever sees the rest). `meta` stays for envelope consistency with
+     * every other endpoint (context.md §4.5) even though this client ignores it.
+     */
+    protected function full(Collection $items, string $resource): JsonResponse
+    {
+        return response()->json([
+            'data' => $resource::collection($items)->resolve(),
+            'meta' => [
+                'current_page' => 1,
+                'last_page' => 1,
+                'per_page' => max($items->count(), 1),
+                'total' => $items->count(),
             ],
         ]);
     }

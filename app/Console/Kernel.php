@@ -12,7 +12,9 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // Prunes rows older than config('activitylog.delete_records_older_than_days')
+        // (plan.md Fase 8) — nothing else in the app schedules or queues work yet.
+        $schedule->command('activitylog:clean')->daily();
     }
 
     /**

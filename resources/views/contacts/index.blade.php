@@ -7,6 +7,7 @@
     <div x-data="resourceTable('{{ route('dash-api.contacts.index') }}', { status: '' }, {
             sort: 'created_at',
             direction: 'desc',
+            deleteUrl: @js(\App\Support\RouteTemplate::for('dash-api.contacts.destroy', 'message')),
             extra: {
                 showUrl: @js(\App\Support\RouteTemplate::for('contacts.show', 'message')),
             },
@@ -111,8 +112,9 @@
         <x-modal.confirm show="confirming !== null"
                          on-close="cancelDelete()"
                          title="Hapus pesan ini?"
+                         confirm-label="Hapus"
                          loading="deleting"
-                         on-confirm="deleting = true; setTimeout(() => { confirming = null; deleting = false; refresh() }, 400)">
+                         on-confirm="destroy()">
             Pesan akan dihapus permanen dan tidak bisa dipulihkan.
         </x-modal.confirm>
     </div>

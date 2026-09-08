@@ -2,6 +2,8 @@
 
 namespace App\View\Components;
 
+use App\Models\ContactMessage;
+use App\Services\TenantManager;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
@@ -13,14 +15,22 @@ use Illuminate\View\View;
  */
 class AppLayout extends Component
 {
+    public int $unreadMessages;
+
     public function __construct(
+        TenantManager $tenants,
         public ?string $title = null,
         /** @var array<int, array{label: string, url?: string}> */
         public array $breadcrumbs = [],
-        public int $unreadMessages = 0,
         /** Sidebar groups to open on first visit, before localStorage takes over. */
         public array $openGroups = ['konten', 'interaksi', 'sistem'],
-    ) {}
+    ) {
+        // Computed here rather than passed by every controller, since nothing
+        // ever did (the "Kotak Masuk" badge always read 0 before Fase 7).
+        $this->unreadMessages = $tenants->hasFeature('contacts')
+            ? ContactMessage::status('unread')->count()
+            : 0;
+    }
 
     public function render(): View
     {
