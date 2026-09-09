@@ -122,6 +122,7 @@ php artisan serve
 | `php artisan tenants:status` | Cek migrasi yang tertinggal per tenant |
 | `php artisan tenants:seed` | Seed pengaturan & taksonomi per tenant |
 | `php artisan tenants:migrate --seed` | Migrasi lalu seed sekaligus |
+| `php artisan tenant:db-credentials {slug}` | Atur kredensial database khusus satu tenant — untuk host yang mengunci satu user per database (`docs/deploy.md`) |
 
 Migrasi tenant **tidak boleh** ditaruh di `database/migrations/` — lihat `context.md` §5.5.
 

@@ -31,10 +31,14 @@ class Tenant extends Model
         'features' => 'array',
         'is_active' => 'boolean',
         'api_key_generated_at' => 'datetime',
+        // Encrypted at rest with APP_KEY — same protection as everything else
+        // central. db_username is not secret by itself but is kept out of
+        // responses anyway; there is no caller that needs it.
+        'db_password' => 'encrypted',
     ];
 
     // The hash is never useful to a caller and must not leak into a response.
-    protected $hidden = ['api_key'];
+    protected $hidden = ['api_key', 'db_username', 'db_password'];
 
     public function users(): BelongsToMany
     {
@@ -109,6 +113,21 @@ class Tenant extends Model
     public function matchesApiKey(string $plain): bool
     {
         return $this->api_key !== null && Hash::check($plain, $this->api_key);
+    }
+
+    /**
+     * Overrides the shared .env tenant-connection credentials for this one
+     * database — for hosts that lock every database to its own dedicated
+     * user (plan.md/docs/deploy.md). Pass both null to revert to the shared
+     * credentials. Never mass-assignable: set only from the console
+     * (`php artisan tenant:db-credentials`), never through a form.
+     */
+    public function setDatabaseCredentials(?string $username, ?string $password): void
+    {
+        $this->forceFill([
+            'db_username' => $username,
+            'db_password' => $password,
+        ])->save();
     }
 
     /**

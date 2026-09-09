@@ -78,6 +78,35 @@ protected $proxies = '*';
 Tanpa ini, `X-Forwarded-Proto` dari Nginx tidak dipercaya dan Laravel bisa salah
 mendeteksi request sebagai HTTP meski sudah lewat HTTPS.
 
+### Kredensial database per tenant
+
+`DB_TENANT_USERNAME`/`DB_TENANT_PASSWORD` di `.env` adalah kredensial **bersama**
+yang dipakai setiap tenant secara default — cukup untuk host yang mengizinkan satu
+user MySQL mengakses banyak database (tinggal `GRANT` user itu ke setiap database
+tenant).
+
+Sebagian host **mengunci satu user hanya bisa akses satu database** dan tidak bisa
+di-grant silang. Untuk kasus itu, atur kredensial khusus per tenant lewat console
+(bukan lewat form — password database tidak pernah dikirim lewat HTTP):
+
+```bash
+php artisan tenant:db-credentials rekam
+# atau non-interaktif:
+php artisan tenant:db-credentials rekam --username=cms_rekam_user --password='...'
+```
+
+Tenant yang belum diatur kredensial khususnya tetap memakai
+`DB_TENANT_USERNAME`/`PASSWORD` bersama seperti biasa. Untuk kembali memakai
+kredensial bersama:
+
+```bash
+php artisan tenant:db-credentials rekam --clear
+```
+
+Password disimpan terenkripsi (`APP_KEY`) di tabel `tenants` dan tidak pernah
+ditampilkan lagi setelah diisi — kesalahan ketik baru terlihat saat tenant
+tersebut berikutnya diaktifkan, jadi pastikan benar sebelum lanjut.
+
 ## 4. Langkah Deploy
 
 ```bash

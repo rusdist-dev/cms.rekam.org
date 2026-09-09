@@ -25,7 +25,30 @@ class TenantManager
     private ?Collection $accessible = null;
 
     /**
-     * Points the `tenant` connection at this company's database.
+     * The connection's original .env-sourced credentials, captured once here
+     * — never re-read from config() after that, since setCurrent() below
+     * mutates the very same keys. Reading them back mid-request (e.g. inside
+     * forEachTenant()'s loop) would leak whichever tenant's override happened
+     * to be set last as if it were the shared default. Safe to capture in the
+     * constructor because this class is bound as a singleton
+     * (AppServiceProvider::register()), constructed once per request before
+     * any setCurrent() call.
+     */
+    private readonly string $defaultTenantUsername;
+
+    private readonly string $defaultTenantPassword;
+
+    public function __construct()
+    {
+        $this->defaultTenantUsername = config('database.connections.tenant.username');
+        $this->defaultTenantPassword = config('database.connections.tenant.password');
+    }
+
+    /**
+     * Points the `tenant` connection at this company's database — and its own
+     * credentials, for a tenant whose database lives on a host that locks
+     * every database to its own dedicated user (docs/deploy.md). A tenant
+     * without an override keeps using the shared .env credentials.
      *
      * The purge is not optional: without it Laravel keeps handing out the PDO
      * opened for the previous tenant, and a switch would silently keep reading
@@ -36,6 +59,8 @@ class TenantManager
         $this->current = $tenant;
 
         Config::set('database.connections.tenant.database', $tenant->db_name);
+        Config::set('database.connections.tenant.username', $tenant->db_username ?: $this->defaultTenantUsername);
+        Config::set('database.connections.tenant.password', $tenant->db_password ?: $this->defaultTenantPassword);
 
         DB::purge('tenant');
         DB::reconnect('tenant');
