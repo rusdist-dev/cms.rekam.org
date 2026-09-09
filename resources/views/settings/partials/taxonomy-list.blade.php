@@ -1,5 +1,11 @@
-<x-card :title="$listTitle" :subtitle="$listHint" :icon="$listIcon" :padding="false">
-    <div x-data="taxonomyEditor('{{ route('dash-api.taxonomy.edit', $group) }}')">
+{{-- x-data wraps the whole card, not just its body: x-slot:footer below is
+     extracted and rendered by <x-card> in a sibling div outside the body slot,
+     so the footer's Save button needs the Alpine scope to reach that far. --}}
+<div x-data="taxonomyEditor(
+        '{{ route('dash-api.taxonomy.edit', $group) }}',
+        '{{ route('dash-api.taxonomy.update', $group) }}'
+    )">
+    <x-card :title="$listTitle" :subtitle="$listHint" :icon="$listIcon" :padding="false">
 
         {{-- loading --}}
         <div x-show="loading" x-cloak class="space-y-2 p-4 sm:p-6">
@@ -64,6 +70,12 @@
                     </div>
                 </div>
             </x-form.repeater>
+
+            <div x-show="saveError" x-cloak class="mt-4">
+                <x-alert variant="danger">
+                    <span x-text="saveError"></span>
+                </x-alert>
+            </div>
         </div>
 
         <x-slot:footer>
@@ -77,5 +89,5 @@
                 </div>
             </div>
         </x-slot:footer>
-    </div>
-</x-card>
+    </x-card>
+</div>

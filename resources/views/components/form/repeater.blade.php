@@ -28,7 +28,14 @@
     <div x-show="! isEmpty" class="space-y-2"
          @if ($sortable) x-sort="move($item, $position)" x-sort:config="{ handle: '[data-drag-handle]' }" @endif>
 
-        <template x-for="(row, index) in rows" :key="row._key">
+        {{-- Rows loaded from an API response (taxonomyEditor's options,
+             resourceForm's form.rundowns) arrive through x-model/x-modelable,
+             which bypasses repeater.js's withKey() — so row._key is undefined
+             for every one of them. Falling back to index keeps each row's
+             identity distinct so Alpine renders all of them instead of
+             collapsing every same-key (undefined) row into one DOM element
+             that just gets overwritten by the last item. --}}
+        <template x-for="(row, index) in rows" :key="row._key ?? index">
             <div x-sort:item="index"
                  class="group relative flex items-start gap-2 rounded-card border border-gray-200 bg-white p-3 shadow-sm transition hover:border-gray-300">
 
