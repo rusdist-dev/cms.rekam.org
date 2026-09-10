@@ -117,7 +117,7 @@ return [
 
     'public_api' => [
         'cache_ttl' => 300,
-        'rate_limit' => 60,
+        'rate_limit' => 300,
         'contact_rate_limit' => 5,
         'allowed_origins' => [
             'https://rekam.org',
