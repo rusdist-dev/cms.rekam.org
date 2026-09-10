@@ -78,9 +78,25 @@ export default (endpoint, initial = {}, options = {}) => extend({
      * declared to match.
      */
     buildBody() {
+        // Every field name registered by a mediaPicker (image-upload /
+        // file-upload) — whether or not this submission actually picks a new
+        // file for it. `form[name]` there holds the picker's display
+        // metadata ({ path, url, name, size }), not something the server
+        // accepts: a `nullable|image` rule rejects anything that isn't a real
+        // UploadedFile, so that object must never reach the request body.
+        // The paired `remove_{name}` flag already says what to do when no
+        // new file is attached.
+        const managedKeys = Object.keys(this.files)
         const files = Object.entries(this.files).filter(([, f]) => f instanceof File)
 
-        if (files.length === 0) return this.form
+        if (files.length === 0) {
+            if (managedKeys.length === 0) return this.form
+
+            const body = { ...this.form }
+            managedKeys.forEach((key) => delete body[key])
+
+            return body
+        }
 
         const body = new FormData()
 
@@ -102,7 +118,10 @@ export default (endpoint, initial = {}, options = {}) => extend({
             }
         }
 
-        Object.entries(this.form).forEach(([key, value]) => append(key, value))
+        Object.entries(this.form).forEach(([key, value]) => {
+            if (managedKeys.includes(key)) return // sent as a real file below, or omitted
+            append(key, value)
+        })
         files.forEach(([key, file]) => body.append(key, file))
 
         return body
