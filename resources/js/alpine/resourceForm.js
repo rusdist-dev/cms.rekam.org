@@ -84,15 +84,26 @@ export default (endpoint, initial = {}, options = {}) => extend({
         // metadata ({ path, url, name, size }), not something the server
         // accepts: a `nullable|image` rule rejects anything that isn't a real
         // UploadedFile, so that object must never reach the request body.
-        // The paired `remove_{name}` flag already says what to do when no
-        // new file is attached.
         const managedKeys = Object.keys(this.files)
-        const files = Object.entries(this.files).filter(([, f]) => f instanceof File)
+        const fileEntries = Object.entries(this.files).filter(([, f]) => f instanceof File)
+        const filedKeys = new Set(fileEntries.map(([key]) => key))
 
-        if (files.length === 0) {
-            if (managedKeys.length === 0) return this.form
+        // `remove_{name}` is recomputed here from the form's current value
+        // rather than trusted as whatever the picker's own x-effect last
+        // wrote — that write races the record's async load(), so a submit
+        // right after opening the edit page could still see its pre-load
+        // "no file yet" state and flag an untouched photo for deletion. A
+        // field keeps its file whenever it still carries a path/url; a field
+        // replaced by a fresh upload is never "removed".
+        const removeFlags = {}
+        managedKeys.forEach((key) => {
+            if (filedKeys.has(key)) return
+            const current = this.form[key]
+            removeFlags[`remove_${key}`] = !(current && (current.path || current.url))
+        })
 
-            const body = { ...this.form }
+        if (fileEntries.length === 0) {
+            const body = { ...this.form, ...removeFlags }
             managedKeys.forEach((key) => delete body[key])
 
             return body
@@ -118,11 +129,11 @@ export default (endpoint, initial = {}, options = {}) => extend({
             }
         }
 
-        Object.entries(this.form).forEach(([key, value]) => {
+        Object.entries({ ...this.form, ...removeFlags }).forEach(([key, value]) => {
             if (managedKeys.includes(key)) return // sent as a real file below, or omitted
             append(key, value)
         })
-        files.forEach(([key, file]) => body.append(key, file))
+        fileEntries.forEach(([key, file]) => body.append(key, file))
 
         return body
     },
