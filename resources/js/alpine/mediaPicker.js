@@ -20,8 +20,15 @@ export default (initial = null, { maxKb = 4096, accept = [] } = {}) => ({
     maxKb,
     accept,
 
+    /**
+     * `name` is part of the test, not just `url`/`path`: a freshly picked
+     * non-image (file-upload's PDF) has neither — `url` is only set for an
+     * image's blob preview, and `path` only after the server has stored it.
+     * Without `name` the picker stayed on its empty dropzone after a pick, and
+     * the x-effect below it flagged the field as `remove_*`.
+     */
     get hasValue() {
-        return Boolean(this.value?.url || this.value?.path)
+        return Boolean(this.value?.url || this.value?.path || this.value?.name)
     },
 
     get previewUrl() {
