@@ -258,4 +258,26 @@ class AtomComponentTest extends TestCase
             $this->assertStringContainsString($class, $static, "select kehilangan kelas '{$class}' (rujukan).");
         }
     }
+
+    /**
+     * buildBody() recomputes `remove_{name}` at submit time and must read what
+     * the picker actually shows. `form[name]` is not that: news and events
+     * bind their cover to a top-level `coverValue`, leaving `form.cover` null
+     * for the record's whole lifetime — which used to send remove_cover=1 on
+     * every edit and wipe the image. The picker publishes its value into
+     * `mediaValues` so the recomputation has a binding-agnostic source.
+     */
+    public function test_media_pickers_publish_their_value_for_remove_flag_recomputation(): void
+    {
+        foreach (['image-upload', 'file-upload'] as $component) {
+            $html = $this->render("<x-form.{$component} name=\"cover\" model=\"coverValue\" />");
+
+            $this->assertStringContainsString("files['cover'] = file", $html,
+                "{$component} tidak mendaftarkan berkas terpilih ke files.");
+            $this->assertStringContainsString("mediaValues['cover'] = value", $html,
+                "{$component} tidak mempublikasikan nilainya ke mediaValues.");
+            $this->assertStringContainsString("form['remove_cover'] = ! hasValue", $html,
+                "{$component} tidak menyetel remove_cover.");
+        }
+    }
 }

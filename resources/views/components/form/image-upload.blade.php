@@ -18,9 +18,13 @@
      @if ($name)
          {{-- The picked File goes to the parent form's `files` map, and a
               cleared field sets remove_* so the server knows the difference
-              between "unchanged" and "deleted". --}}
+              between "unchanged" and "deleted". `mediaValues` mirrors what
+              this picker currently shows, so buildBody() can recompute
+              remove_* without assuming the picker is bound to `form.<name>`
+              — news and events bind their cover to `coverValue` instead. --}}
          x-effect="
              if (typeof files !== 'undefined') files['{{ $name }}'] = file;
+             if (typeof mediaValues !== 'undefined') mediaValues['{{ $name }}'] = value;
              if (typeof form !== 'undefined') form['remove_{{ $name }}'] = ! hasValue;
          "
      @endif

@@ -20,6 +20,12 @@ export default (endpoint, initial = {}, options = {}) => extend({
     // so the JSON payload stays serialisable.
     files: {},
 
+    // What each mediaPicker currently shows, keyed by the same field names as
+    // `files`. Written by the picker's own x-effect, because a picker's model
+    // is not always `form[name]`: contentForm binds news/events' cover to a
+    // top-level `coverValue`, and `form.cover` there stays null forever.
+    mediaValues: {},
+
     loading: false,
     saving: false,
     error: null,
@@ -116,17 +122,23 @@ export default (endpoint, initial = {}, options = {}) => extend({
         const fileEntries = Object.entries(this.files).filter(([, f]) => f instanceof File)
         const filedKeys = new Set(fileEntries.map(([key]) => key))
 
-        // `remove_{name}` is recomputed here from the form's current value
+        // `remove_{name}` is recomputed here from the picker's current value
         // rather than trusted as whatever the picker's own x-effect last
         // wrote — that write races the record's async load(), so a submit
         // right after opening the edit page could still see its pre-load
         // "no file yet" state and flag an untouched photo for deletion. A
         // field keeps its file whenever it still carries a path/url; a field
         // replaced by a fresh upload is never "removed".
+        //
+        // The value comes from `mediaValues`, not `form[key]`: the two agree
+        // only for pickers bound to `form.<name>`. News and events bind their
+        // cover to `coverValue` instead, leaving `form.cover` permanently
+        // null — which read as "no image" and sent remove_cover=1 on every
+        // edit, wiping the cover of any record saved without re-picking one.
         const removeFlags = {}
         managedKeys.forEach((key) => {
             if (filedKeys.has(key)) return
-            const current = this.form[key]
+            const current = key in this.mediaValues ? this.mediaValues[key] : this.form[key]
             removeFlags[`remove_${key}`] = !(current && (current.path || current.url))
         })
 
