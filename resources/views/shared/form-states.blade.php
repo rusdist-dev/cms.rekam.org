@@ -22,5 +22,13 @@
 <div x-show="hasErrors" x-cloak class="mb-6">
     <x-alert variant="danger" title="Periksa kembali isian yang ditandai">
         Beberapa isian belum sesuai. Bagian yang bermasalah ditandai merah di bawah.
+
+        {{-- A message whose key matches no input on the page would otherwise be
+             invisible, leaving the banner pointing at nothing. --}}
+        <ul x-show="unmappedErrors.length" x-cloak class="mt-2 list-disc space-y-1 pl-5">
+            <template x-for="message in unmappedErrors" :key="message">
+                <li x-text="message"></li>
+            </template>
+        </ul>
     </x-alert>
 </div>

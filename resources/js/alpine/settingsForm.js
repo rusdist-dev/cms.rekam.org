@@ -26,6 +26,9 @@ export default (endpoint, initial = {}) => extend({
     saving: false,
     error: null,
     errors: {},
+    // 422 messages whose key matches no input on the page — see
+    // collectUnmappedErrors().
+    unmappedErrors: [],
     saved: false,
 
     async init() {
@@ -64,13 +67,47 @@ export default (endpoint, initial = {}) => extend({
 
         try {
             const res = await window.api.get(this.endpoint)
-            this.form = { ...this.form, ...res.data }
+            this.form = this.mergeRecord(res.data)
             this.pristine = clone(this.form)
         } catch (e) {
             this.error = e.message
         } finally {
             this.loading = false
         }
+    },
+
+    /**
+     * Folds a loaded record onto the declared defaults, keeping a declared
+     * shape wherever the record has nothing to put in it — a setting that has
+     * never been saved comes back as `null`, not as the `{id, en}` map the
+     * defaults declare, and every `x-model="form.address.id"` would then throw
+     * reading a property off it. Same reasoning as resourceForm.js's copy.
+     */
+    mergeRecord(record) {
+        const merged = { ...this.form }
+
+        Object.entries(record ?? {}).forEach(([key, value]) => {
+            const declared = this.form[key]
+            const keepShape = value === null && declared !== null && typeof declared === 'object'
+
+            merged[key] = keepShape ? clone(declared) : value
+        })
+
+        return merged
+    },
+
+    /**
+     * A 422 message keyed on something the page never renders as an input (a
+     * rule on a parent key, say) leaves the banner pointing at fields that all
+     * look fine. Those messages are pulled out so the banner can say them.
+     */
+    collectUnmappedErrors() {
+        this.$nextTick(() => {
+            this.unmappedErrors = Object.entries(this.errors)
+                .filter(([key]) => ! document.getElementById(key)
+                    && ! document.querySelector(`[name="${key}"]`))
+                .map(([, value]) => (Array.isArray(value) ? value[0] : value))
+        })
     },
 
     /**
@@ -114,6 +151,7 @@ export default (endpoint, initial = {}) => extend({
         this.saving = true
         this.error = null
         this.errors = {}
+        this.unmappedErrors = []
         this.saved = false
 
         const body = this.buildBody()
@@ -124,7 +162,7 @@ export default (endpoint, initial = {}) => extend({
                 ? await window.api.post(this.endpoint, body)
                 : await window.api.put(this.endpoint, body)
 
-            this.form = { ...this.form, ...res.data }
+            this.form = this.mergeRecord(res.data)
             this.pristine = clone(this.form)
             this.saved = true
 
@@ -132,6 +170,7 @@ export default (endpoint, initial = {}) => extend({
         } catch (e) {
             this.errors = e.errors ?? {}
             this.error = e.status === 422 ? null : e.message
+            this.collectUnmappedErrors()
 
             return false
         } finally {
@@ -142,6 +181,7 @@ export default (endpoint, initial = {}) => extend({
     reset() {
         this.form = clone(this.pristine)
         this.errors = {}
+        this.unmappedErrors = []
         this.error = null
     },
 }, {})

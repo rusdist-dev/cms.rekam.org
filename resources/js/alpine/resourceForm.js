@@ -24,6 +24,9 @@ export default (endpoint, initial = {}, options = {}) => extend({
     saving: false,
     error: null,
     errors: {},
+    // 422 messages whose key matches no input on the page — see
+    // collectUnmappedErrors().
+    unmappedErrors: [],
     saved: false,
 
     async init() {
@@ -63,13 +66,38 @@ export default (endpoint, initial = {}, options = {}) => extend({
 
         try {
             const res = await window.api.get(`${this.endpoint}/${this.recordId}`)
-            this.form = { ...this.form, ...res.data }
+            this.form = this.mergeRecord(res.data)
             this.pristine = clone(this.form)
         } catch (e) {
             this.error = e.message
         } finally {
             this.loading = false
         }
+    },
+
+    /**
+     * Folds a loaded record onto the declared defaults, keeping a declared
+     * shape wherever the record has nothing to put in it.
+     *
+     * A plain `{ ...this.form, ...record }` cannot: a translatable column that
+     * is NULL in the database arrives as `null`, not as the `{id, en}` map the
+     * defaults declare, and that `null` then lands where the map belongs. Every
+     * `x-model="form.excerpt.id"` on the page throws reading a property off it,
+     * so the field renders blank and silently discards whatever is typed into
+     * it. Rows written through this form always have the full map; rows
+     * imported straight into the database routinely do not.
+     */
+    mergeRecord(record) {
+        const merged = { ...this.form }
+
+        Object.entries(record ?? {}).forEach(([key, value]) => {
+            const declared = this.form[key]
+            const keepShape = value === null && declared !== null && typeof declared === 'object'
+
+            merged[key] = keepShape ? clone(declared) : value
+        })
+
+        return merged
     },
 
     /**
@@ -144,6 +172,7 @@ export default (endpoint, initial = {}, options = {}) => extend({
         this.saving = true
         this.error = null
         this.errors = {}
+        this.unmappedErrors = []
         this.saved = false
 
         const body = payload ?? this.buildBody()
@@ -173,11 +202,29 @@ export default (endpoint, initial = {}, options = {}) => extend({
             // banner or the user sees nothing at all.
             this.error = e.status === 422 ? null : e.message
             this.focusFirstError()
+            this.collectUnmappedErrors()
 
             return false
         } finally {
             this.saving = false
         }
+    },
+
+    /**
+     * The error banner tells the user to look for the fields marked in red, so
+     * a message keyed on something the page never renders leaves them staring
+     * at a form where everything looks filled in — a validation rule on a
+     * parent key (`excerpt`, whose inputs are `excerpt.id` / `excerpt.en`) does
+     * exactly that. Those messages are pulled out here so the banner can say
+     * them outright instead.
+     */
+    collectUnmappedErrors() {
+        this.$nextTick(() => {
+            this.unmappedErrors = Object.entries(this.errors)
+                .filter(([key]) => ! document.getElementById(key)
+                    && ! document.querySelector(`[name="${key}"]`))
+                .map(([, value]) => (Array.isArray(value) ? value[0] : value))
+        })
     },
 
     focusFirstError() {
@@ -194,6 +241,7 @@ export default (endpoint, initial = {}, options = {}) => extend({
     reset() {
         this.form = clone(this.pristine)
         this.errors = {}
+        this.unmappedErrors = []
         this.error = null
     },
 }, options.extra)

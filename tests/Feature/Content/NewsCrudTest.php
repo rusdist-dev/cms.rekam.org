@@ -119,6 +119,28 @@ class NewsCrudTest extends TenantTestCase
         ]))->assertOk()->assertJsonPath('data.title.id', 'Judul Diperbarui');
     }
 
+    public function test_it_updates_an_article_whose_translatable_columns_are_null(): void
+    {
+        // A row inserted straight into the database (migrate_sql/) leaves
+        // `excerpt`, `meta_title` and `meta_description` NULL, so the edit form
+        // loads them as null and posts them back that way. Rejecting that would
+        // make every imported article uneditable, with the message keyed on a
+        // parent field no input renders.
+        $news = News::factory()->create([
+            'category_id' => $this->category->id,
+            'excerpt' => null,
+            'meta_title' => null,
+            'meta_description' => null,
+        ]);
+
+        $this->postJson(route('dash-api.news.update', $news), $this->payload([
+            'title' => ['id' => 'Judul Diperbarui', 'en' => null],
+            'excerpt' => null,
+            'meta_title' => null,
+            'meta_description' => null,
+        ]))->assertOk()->assertJsonPath('data.title.id', 'Judul Diperbarui');
+    }
+
     public function test_programs_store_slugs_not_labels(): void
     {
         // Renaming a programme in settings must not rewrite content rows

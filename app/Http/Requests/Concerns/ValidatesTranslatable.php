@@ -22,7 +22,14 @@ trait ValidatesTranslatable
         $default = config('cms.default_locale');
 
         foreach ($fields as $field => $requiredInDefault) {
-            $rules[$field] = ['array'];
+            // Nullable, not just `array`: a column that is NULL in the database
+            // comes back from the API as `null` rather than as an empty
+            // {id,en} map, and the edit form posts it back exactly as it was
+            // handed over. Without this, editing any row whose `excerpt` /
+            // `meta_title` / `meta_description` was never written through this
+            // form — an SQL import, for instance — fails with an error keyed
+            // on the parent field, which no input on the page renders.
+            $rules[$field] = ['nullable', 'array'];
 
             foreach (config('cms.locales') as $locale) {
                 $rules["{$field}.{$locale}"] = [
