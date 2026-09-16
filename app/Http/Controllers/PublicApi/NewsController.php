@@ -16,6 +16,10 @@ class NewsController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        // Newest first unless the caller asks for the oldest — an archive page
+        // reading forward through a year is the reason `asc` exists.
+        $direction = $request->query('sort') === 'asc' ? 'asc' : 'desc';
+
         $query = News::query()
             ->published()
             ->with('category:id,name,slug')
@@ -23,7 +27,10 @@ class NewsController extends Controller
             ->searchContent($request->query('search'))
             ->publishedYear($request->query('year'))
             ->when($request->query('category'), fn (Builder $q, string $slug) => $this->whereCategorySlug($q, $slug))
-            ->orderByDesc('published_at');
+            // `id` breaks ties so paging stays stable when several articles
+            // share one published_at (a bulk import, a same-minute publish).
+            ->orderBy('published_at', $direction)
+            ->orderBy('id', $direction);
 
         return $this->listResponse($request, $query, NewsResource::class, 'news');
     }

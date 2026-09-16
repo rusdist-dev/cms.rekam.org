@@ -159,6 +159,38 @@ class NewsPublicApiTest extends TenantTestCase
         $this->getPublic('/api/v1/news?search=pelatihan&year=2024')->assertOk()->assertJsonCount(1, 'data');
     }
 
+    public function test_news_is_newest_first_by_default(): void
+    {
+        $older = News::factory()->published()->create(['published_at' => '2023-01-01 08:00:00']);
+        $newer = News::factory()->published()->create(['published_at' => '2024-01-01 08:00:00']);
+
+        $this->getPublic('/api/v1/news')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $newer->id)
+            ->assertJsonPath('data.1.id', $older->id);
+    }
+
+    public function test_sort_asc_returns_the_oldest_first(): void
+    {
+        $older = News::factory()->published()->create(['published_at' => '2023-01-01 08:00:00']);
+        $newer = News::factory()->published()->create(['published_at' => '2024-01-01 08:00:00']);
+
+        $this->getPublic('/api/v1/news?sort=asc')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $older->id)
+            ->assertJsonPath('data.1.id', $newer->id);
+    }
+
+    public function test_an_unknown_sort_value_falls_back_to_newest_first(): void
+    {
+        $older = News::factory()->published()->create(['published_at' => '2023-01-01 08:00:00']);
+        $newer = News::factory()->published()->create(['published_at' => '2024-01-01 08:00:00']);
+
+        $this->getPublic('/api/v1/news?sort=views')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $newer->id);
+    }
+
     public function test_fields_sparse_fieldset(): void
     {
         News::factory()->published()->create();

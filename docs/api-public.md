@@ -73,6 +73,7 @@ GET /api/v1/news?program=<slug>
 GET /api/v1/news?category=<slug-kategori>
 GET /api/v1/news?search=<kata-kunci>
 GET /api/v1/news?year=<tahun>
+GET /api/v1/news?sort=asc
 GET /api/v1/news/{slug}
 GET /api/v1/news-categories
 ```
@@ -85,6 +86,7 @@ GET /api/v1/news-categories
 | `category` | Slug kategori, boleh versi ID maupun EN. |
 | `search` | Kata kunci; dicocokkan pada **judul, ringkasan, dan isi artikel** di kedua bahasa (cocok sebagian, tidak peka huruf besar/kecil). Kosong atau hanya spasi = filter diabaikan. |
 | `year` | Tahun terbit 4 digit, mis. `2024` — menyaring berdasarkan `published_at`. Nilai yang bukan 4 digit angka diabaikan (daftar tetap tampil penuh, bukan error). |
+| `sort` | Urutan waktu terbit: `desc` (default, terbaru dulu) atau `asc` (terlama dulu). Nilai lain diperlakukan sebagai `desc`. |
 
 Semua filter di atas boleh digabung, mis.
 `GET /api/v1/news?search=mangrove&year=2024&category=lingkungan`.
