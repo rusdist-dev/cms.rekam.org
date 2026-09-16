@@ -90,6 +90,75 @@ class NewsPublicApiTest extends TenantTestCase
         $this->getPublic('/api/v1/news?category=category-en')->assertJsonCount(1, 'data');
     }
 
+    public function test_search_matches_the_title_in_either_locale(): void
+    {
+        News::factory()->published()->create(['title' => ['id' => 'Panen Raya Mangrove', 'en' => 'Mangrove Harvest']]);
+        News::factory()->published()->create(['title' => ['id' => 'Rapat Tahunan', 'en' => 'Annual Meeting']]);
+
+        $this->getPublic('/api/v1/news?search=mangrove')->assertOk()->assertJsonCount(1, 'data');
+        $this->getPublic('/api/v1/news?search=Harvest')->assertOk()->assertJsonCount(1, 'data');
+    }
+
+    public function test_search_matches_the_article_body(): void
+    {
+        News::factory()->published()->create([
+            'title' => ['id' => 'Laporan Lapangan', 'en' => null],
+            'excerpt' => ['id' => 'Ringkasan singkat.', 'en' => null],
+            'body' => ['id' => '<p>Kegiatan restorasi terumbu karang berjalan lancar.</p>', 'en' => null],
+        ]);
+        News::factory()->published()->create([
+            'title' => ['id' => 'Berita Lain', 'en' => null],
+            'excerpt' => ['id' => 'Tidak relevan.', 'en' => null],
+            'body' => ['id' => '<p>Isi yang berbeda.</p>', 'en' => null],
+        ]);
+
+        $this->getPublic('/api/v1/news?search=terumbu karang')->assertOk()->assertJsonCount(1, 'data');
+        $this->getPublic('/api/v1/news?search=Ringkasan')->assertOk()->assertJsonCount(1, 'data');
+    }
+
+    public function test_a_blank_or_non_string_search_is_ignored(): void
+    {
+        News::factory()->published()->create();
+
+        $this->getPublic('/api/v1/news?search=')->assertOk()->assertJsonCount(1, 'data');
+        $this->getPublic('/api/v1/news?search=%20%20')->assertOk()->assertJsonCount(1, 'data');
+        // ?search[]=x — an array must not blow up the endpoint.
+        $this->getPublic('/api/v1/news?search[]=x')->assertOk()->assertJsonCount(1, 'data');
+    }
+
+    public function test_year_filter(): void
+    {
+        News::factory()->published()->create(['published_at' => '2023-05-10 08:00:00']);
+        News::factory()->published()->create(['published_at' => '2024-01-02 08:00:00']);
+        News::factory()->published()->create(['published_at' => '2024-11-30 08:00:00']);
+
+        $this->getPublic('/api/v1/news?year=2024')->assertOk()->assertJsonCount(2, 'data');
+        $this->getPublic('/api/v1/news?year=2023')->assertOk()->assertJsonCount(1, 'data');
+        $this->getPublic('/api/v1/news?year=2020')->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_an_invalid_year_is_ignored_rather_than_erroring(): void
+    {
+        News::factory()->published()->create();
+
+        $this->getPublic('/api/v1/news?year=abcd')->assertOk()->assertJsonCount(1, 'data');
+        $this->getPublic('/api/v1/news?year=24')->assertOk()->assertJsonCount(1, 'data');
+    }
+
+    public function test_search_and_year_combine(): void
+    {
+        News::factory()->published()->create([
+            'title' => ['id' => 'Pelatihan Kader', 'en' => null],
+            'published_at' => '2024-03-01 08:00:00',
+        ]);
+        News::factory()->published()->create([
+            'title' => ['id' => 'Pelatihan Kader', 'en' => null],
+            'published_at' => '2023-03-01 08:00:00',
+        ]);
+
+        $this->getPublic('/api/v1/news?search=pelatihan&year=2024')->assertOk()->assertJsonCount(1, 'data');
+    }
+
     public function test_fields_sparse_fieldset(): void
     {
         News::factory()->published()->create();

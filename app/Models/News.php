@@ -90,6 +90,43 @@ class News extends TenantModel
         });
     }
 
+    /**
+     * Public-facing search: a reader types words from a headline or from the
+     * article itself, so the title, the excerpt and the body are all matched,
+     * in either locale (the dashboard's scopeSearch is deliberately narrower —
+     * it searches titles and authors, not article bodies).
+     */
+    public function scopeSearchContent(Builder $query, mixed $term): Builder
+    {
+        $term = is_scalar($term) ? trim((string) $term) : '';
+
+        if ($term === '') {
+            return $query;
+        }
+
+        return $query->where(function (Builder $q) use ($term) {
+            foreach (config('cms.locales') as $locale) {
+                $q->orWhere("title->{$locale}", 'like', "%{$term}%")
+                    ->orWhere("excerpt->{$locale}", 'like', "%{$term}%")
+                    ->orWhere("body->{$locale}", 'like', "%{$term}%");
+            }
+        });
+    }
+
+    /**
+     * Articles published in one calendar year. Anything that isn't a plain
+     * 4-digit year is ignored rather than returning an empty list, the same
+     * way the other optional filters behave.
+     */
+    public function scopePublishedYear(Builder $query, mixed $year): Builder
+    {
+        $year = is_scalar($year) ? (string) $year : '';
+
+        return ctype_digit($year) && strlen($year) === 4
+            ? $query->whereYear('published_at', (int) $year)
+            : $query;
+    }
+
     public function isPublished(): bool
     {
         return $this->status === 'published';

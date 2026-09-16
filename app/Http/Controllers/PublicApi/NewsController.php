@@ -20,6 +20,8 @@ class NewsController extends Controller
             ->published()
             ->with('category:id,name,slug')
             ->program($request->query('program'))
+            ->searchContent($request->query('search'))
+            ->publishedYear($request->query('year'))
             ->when($request->query('category'), fn (Builder $q, string $slug) => $this->whereCategorySlug($q, $slug))
             ->orderByDesc('published_at');
 

@@ -71,11 +71,23 @@ modulnya nonaktif untuk company tersebut.
 GET /api/v1/news
 GET /api/v1/news?program=<slug>
 GET /api/v1/news?category=<slug-kategori>
+GET /api/v1/news?search=<kata-kunci>
+GET /api/v1/news?year=<tahun>
 GET /api/v1/news/{slug}
 GET /api/v1/news-categories
 ```
 `{slug}` boleh slug bahasa Indonesia maupun Inggris. Hanya artikel berstatus terbit
 (dan sudah melewati jadwal terbitnya) yang muncul.
+
+| Parameter | Keterangan |
+|---|---|
+| `program` | Slug program (lihat `GET /api/v1/programs`). |
+| `category` | Slug kategori, boleh versi ID maupun EN. |
+| `search` | Kata kunci; dicocokkan pada **judul, ringkasan, dan isi artikel** di kedua bahasa (cocok sebagian, tidak peka huruf besar/kecil). Kosong atau hanya spasi = filter diabaikan. |
+| `year` | Tahun terbit 4 digit, mis. `2024` — menyaring berdasarkan `published_at`. Nilai yang bukan 4 digit angka diabaikan (daftar tetap tampil penuh, bukan error). |
+
+Semua filter di atas boleh digabung, mis.
+`GET /api/v1/news?search=mangrove&year=2024&category=lingkungan`.
 
 ### Program (khusus tenant dengan modul `news_programs`)
 
