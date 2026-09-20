@@ -1,12 +1,24 @@
 openapi: 3.0.3
 info:
-  title: CMS Rekam — Public API
+  title: CMS Rekam — Public & External API
   description: >
     Read-only API for the compro (company-profile) websites. No session — every
     request is authenticated by the `X-Api-Key` header, which also selects
-    which company's content is served. See docs/api-public.md for the prose
-    version of this same contract.
-  version: "1.0"
+    which company's content is served.
+
+
+    Two surfaces share that key. `/v1/*` serves the tenant's own CMS content.
+    `/v1/ext/*` serves databases owned by *other* systems — COAST (coastal and
+    blue-carbon village surveys) and IKAN (fisheries trip records) — and
+    differs in three ways worth knowing: it has its own rate limit
+    (`DS_RATE_LIMIT`, default 120/min per IP) and response cache, it can answer
+    `503` when a datasource has no credentials in the environment, and it is
+    **not tenant-scoped** — any company's key reads the same rows.
+
+
+    Prose versions of the same contract: docs/api-public.md and
+    docs/api-external.md.
+  version: "1.1"
 servers:
   - url: https://cms.rekam.org/api/v1
     description: Production
@@ -26,6 +38,15 @@ tags:
   - name: Units
   - name: Settings
   - name: Contact
+  - name: COAST
+    description: >
+      External datasource. Coastal and blue-carbon village surveys; only
+      `verified` forms are ever exposed, the same rule `published` enforces for
+      CMS content.
+  - name: IKAN
+    description: >
+      External datasource. Fisheries trip, vessel, gear and catch records. This
+      database has no verification column, so every row is eligible.
 
 paths:
   /news:
@@ -324,6 +345,409 @@ paths:
         '422': { $ref: '#/components/responses/ValidationError' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
 
+
+  # ------------------------------------------------- External: COAST -------
+  /ext/coast/statistik:
+    get:
+      tags: [COAST]
+      summary: Totals across every village
+      description: >
+        Twelve flat metrics over all verified forms, current year against the
+        one before it. The two figures a village summary derives —
+        `luas_ekosistem_total` and `nilai_ekonomi_total` — are deliberately
+        absent: both are sums whose parts mean different things at this scale.
+      parameters:
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      pendataan: { $ref: '#/components/schemas/CoastCoverage' }
+                      statistik: { $ref: '#/components/schemas/CoastStatistics' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/coast/desa:
+    get:
+      tags: [COAST]
+      summary: Villages with verified data, and the point the map marks them at
+      description: >
+        Unpaginated and sorted by village name, case-insensitively: a map needs
+        every marker at once. Region names come from the `wilayah` reference
+        table, not from the free-text name columns on the forms, which disagree
+        with each other for the same code.
+      parameters:
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/CoastVillage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/coast/desa/{kode}:
+    get:
+      tags: [COAST]
+      summary: Everything the map panel shows for one village
+      parameters:
+        - name: kode
+          in: path
+          required: true
+          description: The village's wilayah code (`desa_kode`), e.g. `33.21.12.2011`. Not a form id.
+          schema: { type: string, pattern: '^[0-9.]+$' }
+          example: '33.21.12.2011'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CoastSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: >
+            No verified form exists for this village — deliberately a 404
+            rather than an all-zero summary, which would look like data.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/coast/kawasan-konservasi:
+    get:
+      tags: [COAST]
+      summary: Marine protected areas
+      description: >
+        A reference table, not survey data: there is no `verified` filter to
+        apply, and an area no blue-carbon record points at yet is still listed.
+        Unpaginated, sorted case-insensitively by name.
+      parameters:
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/KawasanKonservasi' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  # -------------------------------------------------- External: IKAN ------
+  /ext/ikan/opsi/wppnri:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: WPPNRI'
+      description: The root of the chain — accepts no filters.
+      parameters:
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/opsi/provinsi:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: province'
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/opsi/kabupaten:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: regency/city'
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/opsi/lokasi-pendaratan:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: landing site'
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/opsi/jenis-data:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: dataset'
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/FilterLokasiPendaratan'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/opsi/alat-tangkap:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: fishing gear'
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/FilterLokasiPendaratan'
+        - $ref: '#/components/parameters/FilterJenisData'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/opsi/family:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: family'
+      description: >
+        From `data_tangkapan_biologi`, which covers 9.247 of 10.619 trips. A
+        trip that recorded no measurements is absent here — it belongs to no
+        family — but is still counted by every level above this one.
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/FilterLokasiPendaratan'
+        - $ref: '#/components/parameters/FilterJenisData'
+        - $ref: '#/components/parameters/FilterAlatTangkap'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/opsi/spesies:
+    get:
+      tags: [IKAN]
+      summary: 'Filter options: species'
+      description: As `family`, and additionally filterable by it.
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/FilterLokasiPendaratan'
+        - $ref: '#/components/parameters/FilterJenisData'
+        - $ref: '#/components/parameters/FilterAlatTangkap'
+        - $ref: '#/components/parameters/FilterFamily'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/grafik/trip:
+    get:
+      tags: [IKAN]
+      summary: Trip counts per period and per landing site
+      description: >
+        Both chart series in one response, because both must describe the same
+        filtered set of trips. Split across two endpoints, a client that forgot
+        to pass one filter to one of them would get two charts that silently
+        disagree.
+
+
+        `alat_tangkap`, `family` and `spesies` are deliberately not accepted
+        here: this chart counts trips, and those three either multiply a trip
+        across rows or exclude trips that recorded no catch.
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/FilterLokasiPendaratan'
+        - $ref: '#/components/parameters/FilterJenisData'
+        - name: tipe_tanggal
+          in: query
+          description: How `per_tanggal` is grouped.
+          schema: { type: string, enum: [monthly, yearly], default: monthly }
+        - name: dari
+          in: query
+          description: Earliest `tanggal_pendataan` to include, inclusive.
+          schema: { type: string, format: date }
+          example: '2025-01-01'
+        - name: sampai
+          in: query
+          description: Latest `tanggal_pendataan` to include, inclusive. Must not precede `dari`.
+          schema: { type: string, format: date }
+          example: '2025-12-31'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TripChart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/grafik/tangkapan:
+    get:
+      tags: [IKAN]
+      summary: Total landed weight per species
+      description: >
+        What the catch is made of, in kilograms. Reads `data_tangkapan_catch` —
+        not `data_tangkapan_biologi`, which measures individual fish and carries
+        a different taxonomy.
+
+
+        Unlike the trip chart this one accepts `alat_tangkap`: summing weights
+        is unaffected by a trip appearing in several catch rows, whereas
+        counting trips would be. There is no `tipe_tanggal` — the result is not
+        a time series.
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/FilterLokasiPendaratan'
+        - $ref: '#/components/parameters/FilterJenisData'
+        - $ref: '#/components/parameters/FilterAlatTangkap'
+        - name: dari
+          in: query
+          description: Earliest `tanggal_pendataan` to include, inclusive.
+          schema: { type: string, format: date }
+          example: '2025-01-01'
+        - name: sampai
+          in: query
+          description: Latest `tanggal_pendataan` to include, inclusive. Must not precede `dari`.
+          schema: { type: string, format: date }
+          example: '2025-12-31'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/CatchChart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/ikan/grafik/frekuensi-panjang:
+    get:
+      tags: [IKAN]
+      summary: Length-frequency histogram, with Lc and Lm
+      description: >
+        The length distribution of measured fish at a class width of the
+        caller's choosing, plus the indicators such a chart is read against.
+
+
+        Lc is computed from the distribution; Lm cannot be, and is an input. See
+        the `indikator` schema.
+      parameters:
+        - $ref: '#/components/parameters/FilterWppnri'
+        - $ref: '#/components/parameters/FilterProvinsi'
+        - $ref: '#/components/parameters/FilterKabupaten'
+        - $ref: '#/components/parameters/FilterLokasiPendaratan'
+        - $ref: '#/components/parameters/FilterJenisData'
+        - $ref: '#/components/parameters/FilterAlatTangkap'
+        - $ref: '#/components/parameters/FilterFamily'
+        - name: spesies
+          in: query
+          schema: { type: string }
+          example: Katsuwonus pelamis
+        - name: dari
+          in: query
+          description: Earliest `tanggal_pendataan` to include, inclusive.
+          schema: { type: string, format: date }
+        - name: sampai
+          in: query
+          description: Latest `tanggal_pendataan` to include, inclusive. Must not precede `dari`.
+          schema: { type: string, format: date }
+        - name: tipe_panjang
+          in: query
+          description: >
+            Absent means both, which is what was asked for — but fork length and
+            total length measure different things, so check
+            `komposisi_tipe_panjang` before reading a mixed histogram.
+          schema: { type: string, enum: [TL, FL] }
+        - name: selang_kelas
+          in: query
+          description: Class width, in the same unit as the lengths.
+          schema: { type: number, format: double, minimum: 0.1, maximum: 50, default: 1 }
+        - name: lm
+          in: query
+          description: >
+            Length at maturity, from the literature for the species being
+            filtered to. Not derivable from this database — see the `indikator`
+            schema.
+          schema: { type: number, format: double, minimum: 0.1, maximum: 500 }
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/LengthFrequency' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -351,6 +775,46 @@ components:
       name: per_page
       in: query
       schema: { type: integer, default: 15 }
+
+    # External datasources (/ext/*). Empty means "no filter", never "the empty
+    # string" — a dropdown reset to its placeholder sends `provinsi=`.
+    FilterWppnri:
+      name: wppnri
+      in: query
+      schema: { type: string }
+      example: WPPNRI-713
+    FilterProvinsi:
+      name: provinsi
+      in: query
+      schema: { type: string }
+      example: SULAWESI SELATAN
+    FilterKabupaten:
+      name: kabupaten
+      in: query
+      schema: { type: string }
+    FilterLokasiPendaratan:
+      name: lokasi_pendaratan
+      in: query
+      description: Underscored, even though the path form is hyphenated.
+      schema: { type: string }
+    FilterJenisData:
+      name: jenis_data
+      in: query
+      schema: { type: string }
+    FilterAlatTangkap:
+      name: alat_tangkap
+      in: query
+      description: >
+        The trip's main gear, from `data_operasional_trip` — the same column
+        `opsi/alat-tangkap` lists. The catch table carries a column of the same
+        name whose values disagree on 1.110 of 17.900 rows and which does not
+        share this vocabulary, so `alat_tangkap=X` means "landed by trips whose
+        main gear was X", not "caught with X".
+      schema: { type: string }
+    FilterFamily:
+      name: family
+      in: query
+      schema: { type: string }
 
   responses:
     Unauthorized:
@@ -387,6 +851,29 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/Message' }
+
+    OptionList:
+      description: >
+        Distinct values still selectable under the filters supplied.
+        Unpaginated, ordered alphabetically. A filter that does not apply to
+        this level is ignored rather than rejected, so a client may keep its
+        whole filter state and send it at every level.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items: { $ref: '#/components/schemas/FilterOption' }
+    DatasourceUnavailable:
+      description: >
+        This external datasource has no credentials in this environment. An
+        operator problem, answered by name rather than as a connection timeout.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+          example: { message: "Sumber data 'COAST' tidak tersedia di lingkungan ini." }
 
   schemas:
     Message:
@@ -629,3 +1116,358 @@ components:
           type: string
           description: Honeypot — must stay empty.
           default: ''
+
+    # -- External: COAST -----------------------------------------------------
+    Metric:
+      type: object
+      description: One statistic, with the current year (`baru`) against the previous one (`lama`).
+      required: [key, label, unit, decimals, baru, lama]
+      properties:
+        key: { type: string, example: luas_ekosistem_total }
+        label: { type: string, example: Total Luas Ekosistem }
+        unit:
+          type: string
+          nullable: true
+          description: >
+            One of `ha`, `Rp`, `kg`, `unit`, `orang`, or `Mg C` — megagrams of
+            carbon. That last one is not currency, despite the upstream column
+            being named "nilai".
+          example: ha
+        decimals: { type: integer, example: 2 }
+        baru: { type: number, format: double }
+        lama: { type: number, format: double }
+        children_sum_to_total:
+          type: boolean
+          description: >
+            Present only alongside `children`. **Read this before summing.**
+            `true` means the children are a complete decomposition — safe to
+            add up, to chart as a whole, or to compute a remainder from.
+            `false` means the parent is the reported figure and the children
+            only the part that could be attributed, so summing them instead
+            would be wrong. It is `false` for `luas_ekosistem_total`, where a
+            row naming several ecosystems at once carries one area belonging to
+            no single type, and for both `orang_*_total` metrics, whose age and
+            gender categories overlap and which upstream allows to be filled in
+            with no breakdown at all.
+        children:
+          type: array
+          description: >
+            Present only on metrics that decompose. The `dampak_ekonomi_*` pair
+            nests two levels deep — activity, then commodity.
+          items: { $ref: '#/components/schemas/Metric' }
+
+    CoastStatistics:
+      type: object
+      properties:
+        tahun_baru: { type: integer, example: 2026 }
+        tahun_lama: { type: integer, example: 2025 }
+        metrik:
+          type: array
+          description: >
+            Fixed order. A village summary returns nine top-level metrics, four
+            of which carry `children`; `/ext/coast/statistik` returns twelve
+            flat ones and never any children.
+          items: { $ref: '#/components/schemas/Metric' }
+
+    CoastCoverage:
+      type: object
+      description: How much data stands behind the totals — all-time, not the two-year window.
+      properties:
+        jumlah_form: { type: integer, example: 81 }
+        jumlah_desa: { type: integer, example: 19 }
+        terakhir: { type: string, format: date, nullable: true, example: '2026-07-25' }
+
+    CoastRegion:
+      type: object
+      description: >
+        Names come from the `wilayah` reference table; a form's own free-text
+        name columns are only a last-resort fallback, because they disagree
+        with each other for the same code.
+      properties:
+        desa_kode: { type: string, example: '33.21.12.2011' }
+        desa: { type: string, nullable: true, example: Purworejo }
+        kecamatan_kode: { type: string, nullable: true, example: '33.21.12' }
+        kecamatan: { type: string, nullable: true, example: Bonang }
+        kabupaten_kode: { type: string, nullable: true, example: '33.21' }
+        kabupaten_kota: { type: string, nullable: true, example: Kabupaten Demak }
+        provinsi_kode: { type: string, nullable: true, example: '33' }
+        provinsi: { type: string, nullable: true, example: Jawa Tengah }
+
+    CoastVillage:
+      allOf:
+        - $ref: '#/components/schemas/CoastRegion'
+        - type: object
+          properties:
+            koordinat:
+              type: object
+              nullable: true
+              description: >
+                Null — not `0,0` — when the village has no boundary row. A
+                marker at null island looks like data.
+              properties:
+                lat: { type: number, format: double, example: -6.8201893594804 }
+                lng: { type: number, format: double, example: 110.56238796756 }
+            jumlah_form: { type: integer, example: 5 }
+            pendataan_terakhir: { type: string, format: date, nullable: true, example: '2026-07-19' }
+
+    CoastBoundary:
+      type: object
+      nullable: true
+      properties:
+        lat: { type: number, format: double, nullable: true }
+        lng: { type: number, format: double, nullable: true }
+        luas: { type: number, format: double, nullable: true }
+        penduduk: { type: integer, nullable: true }
+        path:
+          type: array
+          description: >
+            Polygon rings, already decoded. Points are **[lat, lng]** — the
+            opposite order to GeoJSON, and what Leaflet expects.
+          items:
+            type: array
+            items:
+              type: array
+              items: { type: number, format: double }
+              minItems: 2
+              maxItems: 2
+
+    CoastSummary:
+      type: object
+      properties:
+        wilayah: { $ref: '#/components/schemas/CoastRegion' }
+        peta: { $ref: '#/components/schemas/CoastBoundary' }
+        pendataan:
+          type: object
+          properties:
+            jumlah_form: { type: integer }
+            terakhir: { type: string, format: date, nullable: true }
+        statistik: { $ref: '#/components/schemas/CoastStatistics' }
+        gambar:
+          type: array
+          items:
+            type: object
+            properties:
+              url: { type: string }
+              keterangan: { type: string, nullable: true }
+        rehabilitasi:
+          type: array
+          description: Full history, newest first, capped at 100 — not the two-year window.
+          items: { $ref: '#/components/schemas/CoastRehabilitation' }
+        pelatihan:
+          type: array
+          description: >
+            Full history, newest first, capped at 100. Legitimately empty
+            today: the upstream `coast_kegiatan` table holds no rows yet, even
+            though participant totals do appear among the statistics above.
+          items: { $ref: '#/components/schemas/CoastTraining' }
+
+    CoastRehabilitation:
+      type: object
+      properties:
+        tanggal: { type: string, format: date, nullable: true }
+        ekosistem: { type: string, nullable: true }
+        status_lahan: { type: string, nullable: true }
+        luas_area_direhabilitasi: { type: number, format: double, nullable: true }
+        pelaksana: { type: string, nullable: true }
+        kolaborator: { type: string, nullable: true }
+        jumlah_bibit: { type: integer, nullable: true }
+        survival_rate: { type: number, format: double, nullable: true }
+
+    CoastTraining:
+      type: object
+      properties:
+        tanggal: { type: string, format: date, nullable: true }
+        nama: { type: string, nullable: true }
+        peserta: { type: integer, nullable: true }
+        peserta_pria: { type: integer, nullable: true }
+        peserta_wanita: { type: integer, nullable: true }
+        peserta_remaja: { type: integer, nullable: true }
+        peserta_lansia: { type: integer, nullable: true }
+        peserta_disabilitas: { type: integer, nullable: true }
+
+    KawasanKonservasi:
+      type: object
+      properties:
+        id: { type: integer }
+        nama_kawasan: { type: string }
+        id_mpa:
+          type: string
+          nullable: true
+          description: Identifier in the national MPA register — how this area is referred to outside COAST.
+          example: T393
+        luas_area_dikonservasi: { type: number, format: double }
+        pelaksana_konservasi: { type: string, nullable: true }
+
+    # -- External: IKAN ------------------------------------------------------
+    FilterOption:
+      type: object
+      properties:
+        value: { type: string, example: SULAWESI SELATAN }
+        jumlah_trip:
+          type: integer
+          description: >
+            Trips this option still covers under the filters already chosen —
+            trips, not rows. A trip that measured the same species three times
+            counts once.
+          example: 2536
+
+    CatchChart:
+      type: object
+      properties:
+        filter:
+          type: object
+          description: The request echoed back, so a cached response stays explicable without its URL.
+          properties:
+            dari: { type: string, format: date, nullable: true }
+            sampai: { type: string, format: date, nullable: true }
+          additionalProperties: { type: string }
+        unit:
+          type: string
+          description: Always `kg`. Stated because the upstream column declares no unit of its own.
+          example: kg
+        total_catch: { type: number, format: double, example: 15784681.3 }
+        per_spesies:
+          type: array
+          description: >
+            Heaviest first, name as tie-break, unpaginated — 401 species, and a
+            chart wants them in one piece. A species whose every row has no
+            recorded weight is omitted rather than reported as `0`, which would
+            claim it was weighed and found empty.
+          items:
+            type: object
+            properties:
+              spesies: { type: string, example: Katsuwonus pelamis }
+              total_catch: { type: number, format: double, example: 8312805 }
+
+    LengthFrequency:
+      type: object
+      properties:
+        filter:
+          type: object
+          description: The request echoed back, so a cached response stays explicable without its URL.
+          additionalProperties: { type: string }
+        unit:
+          type: string
+          description: >
+            Always `cm`. Upstream records no unit; measurements run 3-150 with a
+            mean of 23.7, which is centimetres for fish.
+          example: cm
+        selang_kelas: { type: number, format: double, example: 2 }
+        ringkasan:
+          type: object
+          description: >
+            Computed from the rows, not from the bins — changing `selang_kelas`
+            moves `median`, `modus` and `lc`, but never the count, the extremes
+            or the mean. Every field is null when nothing matched.
+          properties:
+            jumlah_ikan: { type: integer, example: 8439 }
+            panjang_min: { type: number, format: double, nullable: true }
+            panjang_maks: { type: number, format: double, nullable: true }
+            rata_rata: { type: number, format: double, nullable: true }
+            median: { type: number, format: double, nullable: true }
+            modus:
+              type: number
+              format: double
+              nullable: true
+              description: Midpoint of the most populated class.
+        komposisi_tipe_panjang:
+          type: array
+          description: >
+            Always present. A histogram that mixes fork length with total length
+            is measuring two different things — an FL of 20 and a TL of 20 are
+            not the same fish — and several species are recorded both ways, so
+            the composition belongs in the response rather than in a footnote.
+            `null` is the 311 upstream rows that record no type.
+          items:
+            type: object
+            properties:
+              tipe_panjang: { type: string, nullable: true, example: FL }
+              jumlah: { type: integer, example: 8439 }
+        indikator:
+          type: object
+          properties:
+            lc:
+              type: number
+              format: double
+              nullable: true
+              description: >
+                Length at first capture, as a **descriptive estimate**: the
+                length at 50% of the cumulative frequency of the ascending limb
+                (classes up to and including the modal one), interpolated within
+                its class. Not a fitted selectivity ogive, which would need the
+                gear's own selection data.
+            lc_metode:
+              type: string
+              description: States how `lc` was derived, so the figure cannot be mistaken for a logistic fit.
+            lm:
+              type: number
+              format: double
+              nullable: true
+              description: >
+                Echoed back from the request. Length at maturity is a biological
+                parameter of a species, not something a length-frequency sample
+                reveals, and no table in this database holds it — so it is an
+                input, taken from the literature for the species filtered to.
+            persen_di_bawah_lm:
+              type: number
+              format: double
+              nullable: true
+              description: >
+                Share of measured fish shorter than `lm`, counted exactly rather
+                than interpolated from the classes. Null when `lm` was not
+                supplied. `lc` below `lm` means the fishery takes fish before
+                they have spawned.
+        kelas:
+          type: array
+          description: >
+            Contiguous from the smallest observed class to the largest, empty
+            ones included — a gap in the axis reads as a bimodal distribution
+            rather than as one missing bar.
+          items:
+            type: object
+            properties:
+              batas_bawah: { type: number, format: double, example: 30 }
+              batas_atas: { type: number, format: double, example: 32 }
+              nilai_tengah: { type: number, format: double, example: 31 }
+              jumlah: { type: integer, example: 1184 }
+              persen: { type: number, format: double, example: 14.03 }
+              kumulatif_persen: { type: number, format: double, example: 52.71 }
+
+    TripChart:
+      type: object
+      properties:
+        filter:
+          type: object
+          description: The request echoed back, so a cached response stays explicable without its URL.
+          properties:
+            tipe_tanggal: { type: string, enum: [monthly, yearly] }
+            dari: { type: string, format: date, nullable: true }
+            sampai: { type: string, format: date, nullable: true }
+          additionalProperties: { type: string }
+        total_trip: { type: integer, example: 1209 }
+        per_tanggal:
+          type: array
+          description: >
+            Oldest first. Empty periods are filled with `0` **only when both
+            `dari` and `sampai` are given** — a bounded range is what a line
+            chart needs, whereas filling an unbounded one would stretch from a
+            single 2004 trip to today: 271 months, 212 of them empty.
+          items:
+            type: object
+            properties:
+              periode:
+                type: string
+                description: '`YYYY-MM` when monthly, `YYYY` when yearly.'
+                example: '2025-01'
+              jumlah_trip: { type: integer, example: 102 }
+        per_lokasi_pendaratan:
+          type: array
+          description: >
+            Ordered alphabetically by landing site — the same order
+            `opsi/lokasi-pendaratan` returns, so the chart axis and the dropdown
+            that filters it agree.
+          items:
+            type: object
+            properties:
+              lokasi_pendaratan: { type: string, example: PPI UJONG BAROH }
+              jumlah_trip: { type: integer, example: 445 }

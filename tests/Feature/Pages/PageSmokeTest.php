@@ -156,10 +156,14 @@ class PageSmokeTest extends TenantTestCase
                 continue;
             }
 
-            // The public compro API (routes/api.php) is authenticated by
-            // X-Api-Key, not a session — see ResolvePublicTenant (plan.md
-            // Fase 6).
-            if (str_starts_with($name, 'public.')) {
+            // The two token API surfaces — the public compro API
+            // (routes/api.php, `public.*`) and the external-datasource API
+            // (routes/ext-api.php, `ext.*`) — are authenticated by X-Api-Key
+            // rather than a session, see ResolvePublicTenant (plan.md Fase 6).
+            // Matched on the guard itself, not on the name prefix: a route
+            // that loses that middleware must fail here, and one that keeps it
+            // must not depend on being named a particular way.
+            if (in_array('resolve.public.tenant', $route->gatherMiddleware(), true)) {
                 continue;
             }
 

@@ -42,6 +42,14 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(config('cms.public_api.contact_rate_limit'))->by($request->ip());
         });
 
+        // The external-datasource API (routes/ext-api.php). Its own, lower
+        // limit: every call here lands on a database owned by another system,
+        // so our ceiling has to be one that system can live with, not one
+        // sized for our own tenant content.
+        RateLimiter::for('ext-api', function (Request $request) {
+            return Limit::perMinute(config('datasources.rate_limit'))->by($request->ip());
+        });
+
         $this->routes(function () {
             // Public API for the compro sites: X-Api-Key, no session. Bare
             // group — like dash-api.php below, it declares its own complete
@@ -52,6 +60,14 @@ class RouteServiceProvider extends ServiceProvider
             Route::middleware([])
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
+
+            // External datasources (routes/ext-api.php): same X-Api-Key guard
+            // as above, different databases. Its own bare group so a slow or
+            // absent third-party system can never share a throttle bucket
+            // with the tenant content API.
+            Route::middleware([])
+                ->prefix('api')
+                ->group(base_path('routes/ext-api.php'));
 
             // Internal API for Alpine. It declares its own `web` middleware and
             // prefix so the two API surfaces never share a guard by accident

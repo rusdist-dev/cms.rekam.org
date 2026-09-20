@@ -4,6 +4,9 @@ API baca-saja untuk website company profile (compro). Tidak ada sesi/login — s
 permintaan diautentikasi lewat header `X-Api-Key`, yang sekaligus menentukan company
 (tenant) mana yang datanya dibaca.
 
+Kontrak yang sama dalam bentuk OpenAPI 3.0 ada di [openapi.yaml](openapi.yaml), satu
+berkas bersama API datasource eksternal ([api-external.md](api-external.md)).
+
 ## Autentikasi
 
 ```

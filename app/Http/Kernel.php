@@ -90,6 +90,7 @@ class Kernel extends HttpKernel
         'active' => \App\Http\Middleware\EnsureUserIsActive::class,
         'cache.headers' => \Illuminate\Http\Middleware\SetCacheHeaders::class,
         'can' => \Illuminate\Auth\Middleware\Authorize::class,
+        'datasource' => \App\Http\Middleware\EnsureDatasource::class,
         'feature' => \App\Http\Middleware\EnsureTenantFeature::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         'public.locale' => \App\Http\Middleware\SetPublicLocale::class,
