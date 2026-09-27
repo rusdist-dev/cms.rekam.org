@@ -117,6 +117,39 @@ return [
                 'password' => env('DS_IKAN_PASSWORD'),
             ],
         ],
+        'hiupari' => [
+            'label' => 'HIUPARI',
+            'read_only' => true,
+            'connection' => [
+                'host' => env('DS_HIUPARI_HOST', '127.0.0.1'),
+                'port' => env('DS_HIUPARI_PORT', '3306'),
+                'database' => env('DS_HIUPARI_DATABASE'),
+                'username' => env('DS_HIUPARI_USERNAME'),
+                'password' => env('DS_HIUPARI_PASSWORD'),
+            ],
+        ],
+        'bsc' => [
+            'label' => 'BSC',
+            'read_only' => true,
+            'connection' => [
+                'host' => env('DS_BSC_HOST', '127.0.0.1'),
+                'port' => env('DS_BSC_PORT', '3306'),
+                'database' => env('DS_BSC_DATABASE'),
+                'username' => env('DS_BSC_USERNAME'),
+                'password' => env('DS_BSC_PASSWORD'),
+            ],
+        ],
+        'stsc' => [
+            'label' => 'STSC',
+            'read_only' => true,
+            'connection' => [
+                'host' => env('DS_STSC_HOST', '127.0.0.1'),
+                'port' => env('DS_STSC_PORT', '3306'),
+                'database' => env('DS_STSC_DATABASE'),
+                'username' => env('DS_STSC_USERNAME'),
+                'password' => env('DS_STSC_PASSWORD'),
+            ],
+        ],
     ],
 
 ];

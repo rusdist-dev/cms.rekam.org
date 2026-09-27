@@ -47,6 +47,21 @@ tags:
     description: >
       External datasource. Fisheries trip, vessel, gear and catch records. This
       database has no verification column, so every row is eligible.
+  - name: BSC
+    description: >
+      External datasource. Blue swimming crab and mud crab landings: trips, and
+      the individual crabs measured on them. Only `trip_nontrip = 'TRIP'`
+      records are ever read.
+  - name: HIUPARI
+    description: >
+      External datasource. Shark and ray landings. A deliberately narrow
+      surface: one species list and the length histogram it filters.
+  - name: STSC
+    description: >
+      External datasource. National fisheries statistics, already aggregated
+      upstream: one row per year per WPPNRI, 1990-2021. No trips and no
+      individuals, so no chained dropdowns and no dates - the filters are the
+      area, the commodity and a year range.
 
 paths:
   /news:
@@ -748,6 +763,497 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/DatasourceUnavailable' }
 
+
+  # ---------------------------------------------------- External: BSC -----
+  /ext/bsc/opsi/provinsi:
+    get:
+      tags: [BSC]
+      summary: 'Filter options: province'
+      description: >
+        The root of the chain — accepts no filters.
+      parameters:
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/opsi/kabupaten:
+    get:
+      tags: [BSC]
+      summary: 'Filter options: regency/city'
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/opsi/lokasi-pendaratan:
+    get:
+      tags: [BSC]
+      summary: 'Filter options: landing site'
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/opsi/jenis-pendataan:
+    get:
+      tags: [BSC]
+      summary: 'Filter options: dataset'
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/BscLokasiPendaratan'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/opsi/alat-tangkap:
+    get:
+      tags: [BSC]
+      summary: 'Filter options: fishing gear'
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/BscLokasiPendaratan'
+        - $ref: '#/components/parameters/BscJenisPendataan'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/opsi/jenis-tangkapan:
+    get:
+      tags: [BSC]
+      summary: 'Filter options: catch type'
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/BscLokasiPendaratan'
+        - $ref: '#/components/parameters/BscJenisPendataan'
+        - $ref: '#/components/parameters/BscAlatTangkap'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/opsi/spesies:
+    get:
+      tags: [BSC]
+      summary: 'Filter options: species'
+      description: >
+        From `data_biologi`. `jumlah_trip` still counts trips: a trip on which fifty crabs were measured counts once.
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/BscLokasiPendaratan'
+        - $ref: '#/components/parameters/BscJenisPendataan'
+        - $ref: '#/components/parameters/BscAlatTangkap'
+        - $ref: '#/components/parameters/BscJenisTangkapan'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200': { $ref: '#/components/responses/OptionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/grafik/trip:
+    get:
+      tags: [BSC]
+      summary: Trip counts per period and per landing site
+      description: >
+        The BSC counterpart of `/ext/ikan/grafik/trip`, over `data_trip.tanggal`.
+
+
+        `spesies` is not accepted: it lives on the crab table, which holds many
+        rows per trip, so joining it would turn a trip count into a crab count
+        and would drop the trips on which nothing was measured.
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/BscLokasiPendaratan'
+        - $ref: '#/components/parameters/BscJenisPendataan'
+        - $ref: '#/components/parameters/BscAlatTangkap'
+        - $ref: '#/components/parameters/BscJenisTangkapan'
+        - name: tipe_tanggal
+          in: query
+          description: How `per_tanggal` is grouped.
+          schema: { type: string, enum: [monthly, yearly], default: monthly }
+        - name: dari
+          in: query
+          description: Earliest `tanggal` to include, inclusive.
+          schema: { type: string, format: date }
+        - name: sampai
+          in: query
+          description: Latest `tanggal` to include, inclusive. Must not precede `dari`.
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/TripChart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/grafik/tangkapan:
+    get:
+      tags: [BSC]
+      summary: Catch composition per species, by measured weight
+      description: >
+        **A sample, not a landing.** BSC has no per-species catch table:
+        `data_trip` holds whole-trip totals with no species breakdown, so the
+        only figure attributable to a species is the weight of the individuals
+        actually measured. Those two populations differ in size and in unit —
+        about 22.115 in trip totals against about 6,63 million gram measured.
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/BscLokasiPendaratan'
+        - $ref: '#/components/parameters/BscJenisPendataan'
+        - $ref: '#/components/parameters/BscAlatTangkap'
+        - $ref: '#/components/parameters/BscJenisTangkapan'
+        - name: dari
+          in: query
+          schema: { type: string, format: date }
+        - name: sampai
+          in: query
+          schema: { type: string, format: date }
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/BscCatchChart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/bsc/grafik/frekuensi-lebar:
+    get:
+      tags: [BSC]
+      summary: Carapace-width histogram, with Lc and Lm both computed
+      description: >
+        Unlike the IKAN length chart, Lm does not have to be supplied here: BSC
+        records a gonad stage per individual, so the width at which half the
+        crabs are mature is in the data. What still has to be decided is which
+        stage counts as mature — see `tkg_matang`.
+      parameters:
+        - $ref: '#/components/parameters/BscProvinsi'
+        - $ref: '#/components/parameters/BscKabupaten'
+        - $ref: '#/components/parameters/BscLokasiPendaratan'
+        - $ref: '#/components/parameters/BscJenisPendataan'
+        - $ref: '#/components/parameters/BscAlatTangkap'
+        - $ref: '#/components/parameters/BscJenisTangkapan'
+        - $ref: '#/components/parameters/BscSpesies'
+        - name: dari
+          in: query
+          schema: { type: string, format: date }
+        - name: sampai
+          in: query
+          schema: { type: string, format: date }
+        - name: jenis_kelamin
+          in: query
+          description: >
+            Absent means both, plus the 83 rows whose sex could not be read.
+            Values are normalised from the four spellings upstream uses.
+          schema: { type: string, enum: [JANTAN, BETINA] }
+        - name: selang_kelas
+          in: query
+          description: Class width, in the same unit as the widths.
+          schema: { type: number, format: double, minimum: 0.1, maximum: 50, default: 1 }
+        - name: tkg_matang
+          in: query
+          description: >
+            Gonad stage at or above which a crab counts as mature. The default
+            is 2: at 1 some 96,5% of crabs qualify and Lm collapses onto the
+            smallest class, while at 3 only 11,1% do and no width class ever
+            reaches half, so Lm comes back null for every query.
+          schema: { type: integer, minimum: 1, maximum: 3, default: 2 }
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/BscLengthFrequency' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+
+  # ------------------------------------------------ External: HIUPARI -----
+  /ext/hiupari/opsi/spesies:
+    get:
+      tags: [HIUPARI]
+      summary: 'Filter options: species'
+      description: >
+        Twenty species, alphabetically, unpaginated and unchained — species is
+        the only dimension this surface filters on. `jumlah_individu` counts
+        every animal of that species, not only those carrying one particular
+        measurement.
+      parameters:
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value: { type: string, example: Prionace glauca }
+                        jumlah_individu: { type: integer, example: 247 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/hiupari/grafik/frekuensi-panjang:
+    get:
+      tags: [HIUPARI]
+      summary: Length histogram for sharks and rays
+      description: >
+        Sharks and rays are measured five different ways and no column is
+        filled in for every animal: all 7.558 Rhynchobatus australiae carry a
+        total length, but only 21 of the 247 Prionace glauca do, while 88 of
+        them carry a predorsal length. Locking the chart to one column would
+        draw a blue-shark histogram from 8% of the blue sharks and look no
+        different for it.
+
+
+        So the measurement is a parameter, and the response always reports both
+        how many animals it left out and what the alternatives would have
+        yielded.
+      parameters:
+        - name: spesies
+          in: query
+          description: Absent means every species.
+          schema: { type: string }
+          example: Prionace glauca
+        - name: jenis_kelamin
+          in: query
+          description: >
+            Absent means both — and then `lm` is null, because clasper maturity
+            is a male character.
+          schema: { type: string, enum: [M, F] }
+        - name: jenis_ukuran
+          in: query
+          description: >
+            Default `panjang_total`, because total length is the conventional
+            reporting measure for these animals — not because it is the most
+            complete, which for several species it is not.
+          schema:
+            type: string
+            enum: [panjang_total, precaudal_length, fork_length, predorsal_length, panjang_headless]
+            default: panjang_total
+        - name: selang_kelas
+          in: query
+          schema: { type: number, format: double, minimum: 0.1, maximum: 50, default: 1 }
+        - name: kematangan_matang
+          in: query
+          description: >
+            Clasper stage at or above which a male counts as mature. Upstream
+            records 0 to 3; 158 rows carry values from 5 to 37, which are
+            clasper lengths written into the maturity column and are treated as
+            no stage at all.
+          schema: { type: integer, minimum: 1, maximum: 3, default: 3 }
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/HiupariLengthFrequency' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/stsc/opsi/wpp:
+    get:
+      tags: [STSC]
+      summary: 'Filter options: fisheries management areas'
+      description: >
+        The eleven WPPNRI, in natural order, unpaginated. `sumber` names the
+        tables that carry the area: the two are filled independently upstream,
+        so an area present in `produksi` but absent from `armada` would draw an
+        empty fleet chart with nothing to explain it. On the data as it stands
+        all eleven appear in both.
+      parameters:
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value: { type: string, example: '571' }
+                        tahun_awal: { type: integer, example: 1990 }
+                        tahun_akhir: { type: integer, example: 2021 }
+                        sumber:
+                          type: array
+                          items: { type: string, enum: [armada, produksi] }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/stsc/opsi/komoditas:
+    get:
+      tags: [STSC]
+      summary: 'Filter options: commodities'
+      description: >
+        Eleven commodities, alphabetically — the same order `grafik/produksi`
+        returns them in, so the axis and the dropdown that filters it agree.
+        `jumlah_wpp` is how many areas land the commodity, and therefore how
+        many lines its chart will draw.
+
+
+        Note that `Rajungan`, `Kepiting` and `Rajungan-Kepiting` all exist as
+        separate commodities: the combined category overlaps the other two, so
+        the three must never be added together.
+      parameters:
+        - name: wpp
+          in: query
+          description: Narrows the list to one area. Absent means every area.
+          schema: { type: string }
+          example: '712'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value: { type: string, example: Rajungan }
+                        jumlah_wpp: { type: integer, example: 11 }
+                        tahun_awal: { type: integer, example: 1990 }
+                        tahun_akhir: { type: integer, example: 2021 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/stsc/grafik/armada:
+    get:
+      tags: [STSC]
+      summary: Fleet size and fleet tonnage per area per year
+      description: >
+        Both series in one response: they are read against each other — a fleet
+        that shrinks while its tonnage grows is the point of the chart — and
+        two calls could answer from two different filters.
+
+
+        Points are emitted only for years that carry a row. Unlike the trip
+        charts of IKAN and BSC, a gap here is not filled with a zero: there a
+        zero means "no trips", here it would mean the fleet disappeared, which
+        is a different claim from "not reported".
+      parameters:
+        - $ref: '#/components/parameters/StscWpp'
+        - $ref: '#/components/parameters/StscDariTahun'
+        - $ref: '#/components/parameters/StscSampaiTahun'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/StscArmadaChart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+  /ext/stsc/grafik/produksi:
+    get:
+      tags: [STSC]
+      summary: Landed weight per commodity, one line per area
+      description: >
+        Nested by commodity, then by area: one panel per commodity, eleven
+        lines in each. Narrowing to a single `wpp` keeps the same shape with
+        one line per panel rather than a second shape to branch on.
+      parameters:
+        - $ref: '#/components/parameters/StscWpp'
+        - name: komoditas
+          in: query
+          description: >
+            Absent means every commodity. Free text rather than an enumeration:
+            the eleven values are upstream's own vocabulary, not a standard.
+          schema: { type: string, maxLength: 30 }
+          example: Rajungan
+        - $ref: '#/components/parameters/StscDariTahun'
+        - $ref: '#/components/parameters/StscSampaiTahun'
+        - $ref: '#/components/parameters/Fields'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/StscProduksiChart' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
+
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -815,6 +1321,66 @@ components:
       name: family
       in: query
       schema: { type: string }
+
+    # BSC. Its chain starts at provinsi: that database records no WPPNRI.
+    BscProvinsi:
+      name: provinsi
+      in: query
+      schema: { type: string }
+      example: JAWA TENGAH
+    BscKabupaten:
+      name: kabupaten
+      in: query
+      description: >
+        Note that upstream holds both `DEMAK` and `KABUPATEN DEMAK` for the
+        same regency; the two are deliberately not merged.
+      schema: { type: string }
+    BscLokasiPendaratan:
+      name: lokasi_pendaratan
+      in: query
+      schema: { type: string }
+    BscJenisPendataan:
+      name: jenis_pendataan
+      in: query
+      description: The collection programme — BCAF, PANTURA, TELUK BANTEN, ARU.
+      schema: { type: string }
+    BscAlatTangkap:
+      name: alat_tangkap
+      in: query
+      schema: { type: string }
+    BscJenisTangkapan:
+      name: jenis_tangkapan
+      in: query
+      description: RAJUNGAN, KEPITING, or both.
+      schema: { type: string }
+    BscSpesies:
+      name: spesies
+      in: query
+      schema: { type: string }
+      example: Portunus pelagicus
+    StscWpp:
+      name: wpp
+      in: query
+      description: >
+        One of the eleven WPPNRI codes; absent means every area. Validated
+        against that list, so an area upstream does not record answers 422
+        rather than an empty chart that reads "no fleet there".
+      schema:
+        type: string
+        enum: ['571', '572', '573', '711', '712', '713', '714', '715', '716', '717', '718']
+      example: '712'
+    StscDariTahun:
+      name: dari_tahun
+      in: query
+      description: Inclusive lower bound. Data runs 1990-2021.
+      schema: { type: integer, minimum: 1900, maximum: 2100 }
+      example: 2015
+    StscSampaiTahun:
+      name: sampai_tahun
+      in: query
+      description: Inclusive upper bound; may not precede `dari_tahun`. Either bound may be given on its own.
+      schema: { type: integer, minimum: 1900, maximum: 2100 }
+      example: 2021
 
   responses:
     Unauthorized:
@@ -1339,6 +1905,210 @@ components:
               spesies: { type: string, example: Katsuwonus pelamis }
               total_catch: { type: number, format: double, example: 8312805 }
 
+    HiupariLengthFrequency:
+      type: object
+      properties:
+        filter:
+          type: object
+          additionalProperties: { type: string }
+        jenis_ukuran:
+          type: string
+          description: The measurement actually used, echoed back including when it came from the default.
+          example: panjang_total
+        unit:
+          type: string
+          description: Always `cm`. Upstream records no unit; measurements run 5-392.
+          example: cm
+        selang_kelas: { type: number, format: double, example: 10 }
+        ringkasan:
+          type: object
+          description: Computed from the rows, not the bins. Every field but the two counts is null when nothing matched.
+          properties:
+            jumlah_individu:
+              type: integer
+              description: Animals carrying the chosen measurement — the population the histogram is drawn from.
+              example: 21
+            jumlah_tanpa_ukuran:
+              type: integer
+              description: >
+                Animals in scope that carry no value for the chosen
+                measurement. **Read this before the chart.** For Prionace
+                glauca at `panjang_total` it is 226 against 21 measured, and a
+                histogram of 21 animals looks exactly like one of 247.
+              example: 226
+            panjang_min: { type: number, format: double, nullable: true }
+            panjang_maks: { type: number, format: double, nullable: true }
+            rata_rata: { type: number, format: double, nullable: true }
+            median: { type: number, format: double, nullable: true }
+            modus: { type: number, format: double, nullable: true }
+        kematangan_matang:
+          type: integer
+          description: The clasper stage actually used, echoed back including when it came from the default.
+          example: 3
+        ketersediaan_ukuran:
+          type: array
+          description: >
+            How many animals in scope carry each of the five measurements, most
+            complete first — so a caller looking at 21 blue sharks can see that
+            predorsal length would have given them 88.
+          items:
+            type: object
+            properties:
+              jenis_ukuran: { type: string, example: predorsal_length }
+              jumlah_individu: { type: integer, example: 88 }
+        indikator:
+          type: object
+          properties:
+            linf:
+              type: number
+              format: double
+              nullable: true
+              description: >
+                Asymptotic length by the empirical Froese & Binohlan relation,
+                Lmax / 0.95 — a rule of thumb, not a von Bertalanffy fit. It
+                rests on a single extreme value, and it follows the selection
+                rather than the species: male Rhynchobatus australiae give 300,
+                females 353,68. The relation was established for total length,
+                so applied to another measurement it is an asymptote of that
+                measurement rather than of the animal.
+            linf_metode: { type: string }
+            lm:
+              type: number
+              format: double
+              nullable: true
+              description: >
+                Length at which half the males have reached the clasper stage
+                given by `kematangan_matang`, interpolated between the two
+                bracketing class midpoints, classes under ten individuals
+                skipped. **Null unless `jenis_kelamin=M`**: clasper maturity is
+                a male character, and 12.091 of the 12.108 females upstream
+                carry a 0 meaning "no claspers" rather than "immature".
+            lm_metode:
+              type: string
+              description: States how Lm was derived, or why it is null.
+            persen_matang: { type: number, format: double, nullable: true }
+        kelas:
+          type: array
+          description: Contiguous from smallest to largest observed, empty classes included.
+          items:
+            type: object
+            properties:
+              batas_bawah: { type: number, format: double }
+              batas_atas: { type: number, format: double }
+              nilai_tengah: { type: number, format: double }
+              jumlah: { type: integer }
+              jumlah_matang:
+                type: integer
+                nullable: true
+                description: Males in this class at or above `kematangan_matang`. Null unless the selection is male-only.
+              persen: { type: number, format: double }
+              kumulatif_persen: { type: number, format: double }
+              persen_matang: { type: number, format: double, nullable: true }
+
+    BscCatchChart:
+      type: object
+      properties:
+        filter:
+          type: object
+          additionalProperties: { type: string }
+        unit:
+          type: string
+          description: >
+            Always `gram`. Upstream records no unit; a mean of about 145 over
+            46.093 crabs with a maximum of 1.800 is grams.
+          example: gram
+        total_bobot: { type: number, format: double }
+        per_spesies:
+          type: array
+          description: >
+            Heaviest first, name as tie-break, unpaginated — seven species. A
+            species whose every individual went unweighed is omitted rather
+            than reported at zero.
+          items:
+            type: object
+            properties:
+              spesies: { type: string, example: Portunus pelagicus }
+              total_bobot: { type: number, format: double }
+
+    BscLengthFrequency:
+      type: object
+      properties:
+        filter:
+          type: object
+          additionalProperties: { type: string }
+        unit: { type: string, example: cm }
+        selang_kelas: { type: number, format: double, example: 1 }
+        tkg_matang:
+          type: integer
+          description: The maturity threshold actually used, echoed back including when it came from the default.
+          example: 2
+        ringkasan:
+          type: object
+          description: Computed from the rows, not the bins. Every field is null when nothing matched.
+          properties:
+            jumlah_individu: { type: integer }
+            lebar_min: { type: number, format: double, nullable: true }
+            lebar_maks: { type: number, format: double, nullable: true }
+            rata_rata: { type: number, format: double, nullable: true }
+            median: { type: number, format: double, nullable: true }
+            modus: { type: number, format: double, nullable: true }
+            tanpa_tkg:
+              type: integer
+              description: >
+                Crabs with no gonad stage recorded. They count as not mature,
+                so this bounds how far the maturity figures can be trusted.
+        komposisi_jenis_kelamin:
+          type: array
+          description: >
+            Always present. Sex is written four ways upstream — JANTAN/M/L and
+            BETINA/F/P — and 83 rows in none of them; those come back as null.
+          items:
+            type: object
+            properties:
+              jenis_kelamin: { type: string, nullable: true, example: BETINA }
+              jumlah: { type: integer }
+        indikator:
+          type: object
+          properties:
+            lc:
+              type: number
+              format: double
+              nullable: true
+              description: >
+                Width at 50% of the cumulative frequency of the ascending limb,
+                interpolated within its class. A descriptive estimate, not a
+                fitted selectivity ogive.
+            lc_metode: { type: string }
+            lm:
+              type: number
+              format: double
+              nullable: true
+              description: >
+                Width at which the mature proportion first crosses half,
+                interpolated between the two class midpoints that bracket it.
+                Classes with fewer than ten individuals are skipped: at the
+                tails three crabs can read 100% and would drag Lm to wherever
+                the data is sparsest. Null when no class reaches half — which
+                is what `tkg_matang=3` produces on the current data.
+            lm_metode: { type: string }
+            persen_matang: { type: number, format: double, nullable: true }
+        kelas:
+          type: array
+          description: Contiguous from smallest to largest observed, empty classes included.
+          items:
+            type: object
+            properties:
+              batas_bawah: { type: number, format: double }
+              batas_atas: { type: number, format: double }
+              nilai_tengah: { type: number, format: double }
+              jumlah: { type: integer }
+              jumlah_matang:
+                type: integer
+                description: Crabs in this class at or above `tkg_matang` — enough to plot the maturity ogive and check Lm.
+              persen: { type: number, format: double }
+              kumulatif_persen: { type: number, format: double }
+              persen_matang: { type: number, format: double, nullable: true }
+
     LengthFrequency:
       type: object
       properties:
@@ -1471,3 +2241,83 @@ components:
             properties:
               lokasi_pendaratan: { type: string, example: PPI UJONG BAROH }
               jumlah_trip: { type: integer, example: 445 }
+
+    StscSeries:
+      type: array
+      description: >
+        One line per WPPNRI, area codes in natural order. Points are emitted
+        only for years that carry a row — a gap is a year nobody reported, not
+        a year with no fleet.
+      items:
+        type: object
+        properties:
+          wpp: { type: string, example: '571' }
+          titik:
+            type: array
+            items:
+              type: object
+              properties:
+                tahun: { type: integer, example: 2021 }
+                nilai: { type: number, format: double, example: 59840 }
+
+    StscArmadaChart:
+      type: object
+      properties:
+        filter:
+          type: object
+          properties:
+            wpp: { type: string, nullable: true }
+            dari_tahun: { type: integer, nullable: true }
+            sampai_tahun: { type: integer, nullable: true }
+        unit:
+          type: object
+          description: >
+            Upstream states no unit for either column. `armada` counts vessels;
+            `total_GT` is gross tonnage, consistent with the magnitudes
+            recorded (about 5 GT per vessel across the whole table).
+          properties:
+            armada: { type: string, example: unit }
+            gt: { type: string, example: GT }
+        tahun:
+          type: array
+          description: >
+            The shared x-axis: every year covered by the selection, ascending,
+            so a client drawing eleven lines need not work out their union.
+          items: { type: integer }
+          example: [2019, 2020, 2021]
+        armada: { $ref: '#/components/schemas/StscSeries' }
+        gt: { $ref: '#/components/schemas/StscSeries' }
+      description: >
+        No grand total for either series, deliberately: both are stocks counted
+        afresh every year, and summing 1990 through 2021 would report a fleet
+        larger than any that ever existed. Production, a flow, is totalled.
+
+    StscProduksiChart:
+      type: object
+      properties:
+        filter:
+          type: object
+          properties:
+            wpp: { type: string, nullable: true }
+            komoditas: { type: string, nullable: true }
+            dari_tahun: { type: integer, nullable: true }
+            sampai_tahun: { type: integer, nullable: true }
+        unit: { type: string, example: ton }
+        tahun:
+          type: array
+          items: { type: integer }
+          example: [2019, 2020, 2021]
+        total_produksi_ton:
+          type: number
+          format: double
+          description: Tonnage landed across the whole selection. Production is a flow, so this sum is meaningful.
+          example: 317463.64
+        komoditas:
+          type: array
+          description: Alphabetical, matching `opsi/komoditas`.
+          items:
+            type: object
+            properties:
+              komoditas: { type: string, example: Rajungan }
+              total_produksi_ton: { type: number, format: double, example: 317463.64 }
+              seri: { $ref: '#/components/schemas/StscSeries' }

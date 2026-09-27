@@ -701,6 +701,389 @@ yang sama — perbaikannya ada di data, bukan di sini.
 
 ---
 
+## Endpoint BSC
+
+Data pendaratan rajungan dan kepiting: **4.904 record induk** di `data_trip` (4.864
+berlabel `TRIP`, 40 `NON TRIP`) dan **47.143 pengukuran individu** di `data_biologi`.
+
+Kebutuhannya sama dengan IKAN — dropdown berantai, grafik trip, komposisi tangkapan,
+frekuensi panjang — tetapi skemanya berbeda dan perbedaannya mengubah jawabannya:
+
+| | IKAN | BSC |
+|---|---|---|
+| Level teratas rantai | WPPNRI | **provinsi** (tidak ada WPPNRI sama sekali) |
+| Level rantai | 8 | **7** (tidak ada `family`) |
+| Tangkapan per spesies | tabel `data_tangkapan_catch` | **tidak ada** — hanya bobot individu |
+| Ukuran | `panjang_total` + tipe TL/FL | **`lebar_karapas`** + `jenis_kelamin` |
+| Lm | harus dipasok dari literatur | **dihitung dari `TKG`** |
+
+### Cakupan: hanya `trip_nontrip = 'TRIP'`
+
+Setiap endpoint BSC hanya membaca record berlabel `TRIP`. Ke-40 record `NON TRIP`
+pengukurannya ada di tabel `data_nontrip`, yang **tidak dibaca sama sekali**.
+
+Aturan ini bukan formalitas: **669 baris `data_biologi` justru menempel pada record
+`NON TRIP`** dan ikut tersaring, ditambah **381 baris yatim** yang `id_trip`-nya tidak
+ada di `data_trip`. Yang tersisa 46.093 pengukuran dari 4.864 trip.
+
+### Dropdown berantai — `GET /api/v1/ext/bsc/opsi/{daftar}`
+
+| Endpoint | Sumber | Parameter opsional |
+|---|---|---|
+| `opsi/provinsi` | `data_trip.provinsi` | — |
+| `opsi/kabupaten` | `data_trip.kabupaten` | `provinsi` |
+| `opsi/lokasi-pendaratan` | `data_trip.lokasi_pendaratan` | + `kabupaten` |
+| `opsi/jenis-pendataan` | `data_trip.jenis_pendataan` | + `lokasi_pendaratan` |
+| `opsi/alat-tangkap` | `data_trip.alat_tangkap` | + `jenis_pendataan` |
+| `opsi/jenis-tangkapan` | `data_trip.jenis_tangkapan` | + `alat_tangkap` |
+| `opsi/spesies` | `data_biologi.spesies` | + `jenis_tangkapan` |
+
+Bentuk respons, urutan abjad, `jumlah_trip`, dan perlakuan filter yang tidak berlaku
+persis sama dengan rantai IKAN. `jumlah_trip` menghitung **trip**, bukan individu: satu
+trip dengan lima puluh rajungan terukur tetap dihitung satu.
+
+> Catatan data: `kabupaten` memuat `DEMAK` dan `KABUPATEN DEMAK`, juga `JEPARA` dan
+> `KABUPATEN JEPARA` — kabupaten yang sama dengan dua ejaan, muncul sebagai opsi
+> terpisah. Sengaja tidak dinormalisasi, alasan yang sama dengan Pangkajene di IKAN.
+
+### `GET /api/v1/ext/bsc/grafik/trip`
+
+Identik bentuknya dengan `ikan/grafik/trip`: `per_tanggal` (`tipe_tanggal` `monthly`
+default atau `yearly`, periode kosong diisi nol hanya bila rentang dibatasi) dan
+`per_lokasi_pendaratan` terurut abjad. Tanggalnya `data_trip.tanggal`.
+
+Filter: `provinsi`, `kabupaten`, `lokasi_pendaratan`, `jenis_pendataan`, `alat_tangkap`,
+`jenis_tangkapan`, `dari`, `sampai`. **`spesies` tidak diterima** — ia ada di tabel
+individu, dan menggabungkannya akan mengubah hitungan trip menjadi hitungan rajungan.
+
+### `GET /api/v1/ext/bsc/grafik/tangkapan`
+
+Komposisi per spesies berdasarkan **bobot individu yang diukur**
+(`sum(data_biologi.bobot)`).
+
+**Ini sampel, bukan pendaratan.** BSC tidak punya tabel tangkapan per spesies:
+`data_trip` hanya menyimpan total per trip tanpa rincian spesies
+(`total_tangkapan_utama` seluruhnya 22.115), sementara rajungan yang benar-benar
+ditimbang berjumlah sekitar 6,63 juta gram. Dua populasi berbeda dengan satuan berbeda.
+Baca endpoint ini sebagai "tangkapan yang diukur terdiri dari apa", bukan "berapa yang
+didaratkan".
+
+Satuan `gram` — hulu tidak menyatakannya; rata-rata sekitar 145 atas 46.093 rajungan
+dengan maksimum 1.800. Spesies yang seluruh individunya tidak ditimbang dikeluarkan,
+bukan dilaporkan 0.
+
+### `GET /api/v1/ext/bsc/grafik/frekuensi-lebar`
+
+Sebaran lebar karapas, dengan Lc **dan Lm** yang keduanya dihitung.
+
+| Parameter | Nilai |
+|---|---|
+| ketujuh level rantai | opsional |
+| `dari`, `sampai` | `YYYY-MM-DD` atas `data_trip.tanggal`, inklusif |
+| `jenis_kelamin` | `JANTAN` atau `BETINA`. Kosong berarti keduanya |
+| `selang_kelas` | 0.1–50, default `1` |
+| `tkg_matang` | 1–3, default `2` — lihat di bawah |
+
+Setiap kelas membawa `jumlah`, `jumlah_matang`, dan `persen_matang`, sehingga kurva
+kematangan bisa digambar dan Lm di bawah bisa diperiksa sendiri.
+
+#### Lm dihitung dari TKG — dan ambangnya sebuah keputusan
+
+Berbeda dari IKAN, BSC mencatat tingkat kematangan gonad per individu, jadi Lm tidak
+perlu dipasok. Yang tetap perlu ditentukan adalah **stadium mana yang berarti matang**,
+dan itu penilaian biologis yang tidak dinyatakan datanya. Karena itu `tkg_matang` adalah
+parameter, dengan default `2`:
+
+| `tkg_matang` | Persen matang | Lm (Portunus pelagicus betina) |
+|---|---|---|
+| 1 | 96,5% | 7,5 — semuanya "matang", angkanya runtuh ke kelas terkecil |
+| **2** | **62,7%** | **9,49** — kurva S yang wajar, sesuai kisaran literatur |
+| 3 | 11,1% | `null` — tidak ada kelas lebar yang menembus 50% |
+
+Default `3` akan mematikan indikatornya sama sekali, dan `1` membuatnya tak bermakna.
+Tetap perlu dikonfirmasi ke pemilik data.
+
+`lm` diinterpolasi pada lebar saat proporsi matang pertama kali menembus setengah,
+antara dua titik tengah kelas yang mengapitnya. **Kelas dengan kurang dari 10 individu
+dilewati**: di ekor sebaran, tiga rajungan bisa membaca 100% dan menarik Lm ke tempat
+data paling jarang. Seperti Lc, ini estimasi deskriptif, bukan regresi logistik —
+`lm_metode` menyatakannya di respons.
+
+Lc di bawah Lm berarti perikanan menangkap rajungan sebelum sempat memijah.
+
+#### Empat kosakata untuk dua jenis kelamin
+
+`jenis_kelamin` di hulu ditulis sebagai `JANTAN`/`M`/`L` dan `BETINA`/`F`/`P`, ditambah
+83 baris yang bukan keduanya (kosong, atau `"2"`). Nilainya **dinormalkan** jadi dua:
+JANTAN 26.016 dan BETINA 21.044; sisanya jadi `null` dan hanya ikut saat
+`jenis_kelamin` dikosongkan.
+
+`komposisi_jenis_kelamin` selalu ada di respons supaya hasil normalisasi dan sisanya
+tetap terlihat.
+
+---
+
+## Endpoint HIUPARI
+
+Data pendaratan hiu dan pari: 4.579 trip dan **19.268 individu terukur**. Permukaannya
+sengaja sempit — satu daftar spesies dan satu histogram yang menyaringnya.
+
+### `GET /api/v1/ext/hiupari/opsi/spesies`
+
+Dua puluh spesies, terurut abjad, tanpa paginasi dan **tanpa rantai** (tidak ada level
+lain untuk menyaringnya).
+
+```json
+{ "data": [ { "value": "Alopias pelagicus", "jumlah_individu": 116 } ] }
+```
+
+`jumlah_individu` menghitung **semua** individu spesies itu, bukan hanya yang punya
+ukuran tertentu — daftar ini menyatakan spesies apa yang ada, bukan kolom mana yang
+kebetulan terisi.
+
+### `GET /api/v1/ext/hiupari/grafik/frekuensi-panjang`
+
+| Parameter | Nilai |
+|---|---|
+| `spesies` | opsional; kosong berarti semua |
+| `jenis_kelamin` | `M` atau `F`; kosong berarti keduanya |
+| `jenis_ukuran` | `panjang_total` (default), `precaudal_length`, `fork_length`, `predorsal_length`, `panjang_headless` |
+| `selang_kelas` | 0.1–50, default `1` |
+| `kematangan_matang` | 1–3, default `3` — lihat Lm di bawah |
+
+```json
+{
+  "data": {
+    "filter": { "spesies": "Rhynchobatus australiae" },
+    "jenis_ukuran": "panjang_total",
+    "unit": "cm",
+    "selang_kelas": 10,
+    "ringkasan": {
+      "jumlah_individu": 7557, "jumlah_tanpa_ukuran": 1,
+      "panjang_min": 34, "panjang_maks": 336,
+      "rata_rata": 109.54, "median": 101.42, "modus": 85
+    },
+    "ketersediaan_ukuran": [
+      { "jenis_ukuran": "precaudal_length", "jumlah_individu": 7558 },
+      { "jenis_ukuran": "panjang_total", "jumlah_individu": 7557 },
+      { "jenis_ukuran": "fork_length", "jumlah_individu": 2804 }
+    ],
+    "indikator": {
+      "linf": 353.68,
+      "linf_metode": "empiris Lmax / 0.95 (Froese & Binohlan 2000)",
+      "lm": null,
+      "lm_metode": "hanya tersedia untuk jantan: kematangan klasper adalah ciri jantan, dan betina tercatat 0 karena tidak berklasper",
+      "persen_matang": null
+    },
+    "kelas": [ { "batas_bawah": 80, "batas_atas": 90, "nilai_tengah": 85, "jumlah": 812, "persen": 10.75, "kumulatif_persen": 41.2 } ]
+  }
+}
+```
+
+#### Kenapa `jenis_ukuran` wajib ada, bukan sekadar tambahan
+
+Hiu dan pari diukur dengan **lima cara berbeda**, dan kelengkapannya berbeda jauh antar
+spesies:
+
+| Spesies | individu | `panjang_total` | `precaudal_length` | `predorsal_length` |
+|---|---:|---:|---:|---:|
+| Rhynchobatus australiae | 7.558 | 7.557 | 7.558 | 0 |
+| Alopias superciliosus | 212 | 56 | 133 | — |
+| **Prionace glauca** | **247** | **21** | 30 | **88** |
+
+Mengunci satu kolom akan menggambar histogram hiu biru dari **21 dari 247 individu**
+(8%) — dan grafiknya tidak akan terlihat berbeda dari yang memakai seluruhnya. Karena
+itu dua hal selalu ada di respons:
+
+- **`ringkasan.jumlah_tanpa_ukuran`** — berapa individu dalam cakupan yang tidak punya
+  ukuran yang dipilih. Untuk Prionace glauca dengan `panjang_total`, angkanya 226.
+- **`ketersediaan_ukuran`** — berapa individu yang punya masing-masing dari lima ukuran,
+  terurut dari yang terbanyak. Dari situ terlihat bahwa untuk hiu biru,
+  `predorsal_length` justru memberi 88 individu, empat kali lipat `panjang_total`.
+
+Default-nya `panjang_total` karena total length adalah ukuran pelaporan konvensional
+untuk hiu dan pari — **bukan** karena ia yang paling lengkap.
+
+Satuan `cm` disimpulkan dari sebarannya (5–392); hulu tidak menyatakannya.
+
+#### Linf — estimasi empiris, bukan kurva pertumbuhan
+
+`linf` adalah hubungan empiris Froese & Binohlan (2000): **Lmax / 0.95**. Sederhana dan
+kokoh, tapi perlu dibaca apa adanya:
+
+- **Bertumpu pada satu nilai ekstrem.** Satu salah input raksasa akan menggesernya.
+- **Mengikuti seleksi, bukan spesies.** Untuk *Rhynchobatus australiae*, jantan memberi
+  300,00 (Lmax 285) dan betina 353,68 (Lmax 336) — keduanya benar untuk sampelnya
+  masing-masing.
+- **Hubungan itu dirumuskan untuk total length.** Dipakai pada `precaudal_length` atau
+  `predorsal_length` ia tetap mengembalikan angka, tapi angka itu asimtot dari ukuran
+  tersebut, bukan dari hewannya. `jenis_ukuran` selalu ikut di respons karena itu.
+
+Ini bukan hasil pencocokan kurva von Bertalanffy. Metode berbasis frekuensi panjang
+seperti Powell-Wetherall memberi angka berbeda — untuk *R. australiae* 417,42 — dan bisa
+ditambahkan bila diperlukan.
+
+#### Lm — dihitung dari kematangan klasper, **hanya untuk jantan**
+
+`lm` adalah panjang saat setengah individu mencapai tahap klasper `kematangan_matang`,
+diinterpolasi antara dua titik tengah kelas yang mengapitnya, dengan kelas berisi kurang
+dari 10 individu dilewati.
+
+**Ia `null` kecuali `jenis_kelamin=M`.** Kematangan klasper adalah ciri jantan:
+**12.091 dari 12.108 betina tercatat 0**, yang berarti "tidak berklasper", bukan "belum
+matang". Menghitung ogive atas sampel campuran akan terbaca seolah hampir tidak ada yang
+pernah memijah. `lm_metode` menyatakan alasannya di respons.
+
+Contoh nyata, *R. australiae* jantan pada `kematangan_matang=3`: ogive 4,8% → 12,9% →
+17,4% → **48,1%** → 65,8% → 78,8%, sehingga **Lm = 116,06**.
+
+**158 baris di hulu mencatat `kematangan_klasper` bernilai 5 sampai 37** — panjang
+klasper yang tertulis di kolom kematangan. Nilai di luar skala 0–3 diperlakukan sebagai
+tidak bertahap, bukan sebagai hewan yang sangat matang.
+
+## Endpoint STSC
+
+Statistik perikanan nasional: **352 baris** di `data_armada` (satu baris per tahun per
+WPPNRI) dan **3.872 baris** di `data_produksi` (tahun × WPPNRI × komoditas). Keduanya
+1990–2021, 11 WPPNRI, 11 komoditas, tanpa baris ganda.
+
+Berbeda dari tiga datasource perikanan lain di dokumen ini, **ini bukan data pendaratan**:
+tidak ada trip, tidak ada individu terukur, tidak ada tanggal. Yang ada adalah angka
+agregat yang sudah dipublikasikan pihak hulu. Konsekuensinya tiga:
+
+- **tidak ada dropdown berantai.** WPPNRI dan komoditas adalah dua sumbu dari satu grid,
+  bukan hierarki. `opsi/komoditas` tetap menerima `wpp` — karena orang yang sudah memilih
+  wilayah ingin tahu apa yang didaratkan di sana — tapi tidak ada urutan level.
+- **filternya tahun, bukan tanggal.** `dari_tahun`/`sampai_tahun`, inklusif di kedua ujung.
+- **endpoint ini tidak menghitung apa-apa** selain penjumlahan. Tidak ada indikator, tidak
+  ada interpolasi; angkanya adalah angka hulu, disajikan ulang dalam bentuk seri.
+
+`wpp` divalidasi terhadap **sebelas kode WPPNRI** (Permen KP 18/2014) yang tercatat di
+kedua tabel. `wpp=999` menjawab `422`, bukan grafik kosong — grafik kosong terbaca sebagai
+"tidak ada armada di sana", yang merupakan pernyataan yang sama sekali berbeda.
+
+### `GET /api/v1/ext/stsc/opsi/wpp`
+
+Sebelas wilayah, urut natural, tanpa paginasi.
+
+```json
+{ "data": [ { "value": "571", "tahun_awal": 1990, "tahun_akhir": 2021, "sumber": ["armada", "produksi"] } ] }
+```
+
+`sumber` menyebut tabel mana saja yang memuat wilayah itu. Kedua tabel diisi terpisah di
+hulu: wilayah yang ada di `produksi` tapi tidak di `armada` akan menggambar grafik armada
+kosong dan grafik produksi penuh, dan daftar ini mengatakannya sebelum grafiknya
+mengatakannya. Pada data sekarang kesebelasnya ada di keduanya.
+
+### `GET /api/v1/ext/stsc/opsi/komoditas`
+
+Sebelas komoditas, urut abjad — urutan yang sama dengan `grafik/produksi`, jadi sumbu dan
+dropdown yang menyaringnya terbaca sama. Menerima `wpp` opsional.
+
+```json
+{ "data": [ { "value": "Cumi-Cumi", "jumlah_wpp": 11, "tahun_awal": 1990, "tahun_akhir": 2021 } ] }
+```
+
+`jumlah_wpp` adalah banyaknya wilayah yang mendaratkan komoditas itu — sekaligus banyaknya
+garis yang akan digambar grafiknya.
+
+> Catatan data: `Rajungan`, `Kepiting`, dan `Rajungan-Kepiting` ketiganya ada sebagai
+> komoditas terpisah. **Jangan menjumlahkan ketiganya**; kategori gabungan itu tumpang
+> tindih dengan dua lainnya. Sengaja tidak dinormalisasi, alasan yang sama dengan
+> Pangkajene di IKAN.
+
+### Grafik armada — `GET /api/v1/ext/stsc/grafik/armada`
+
+| Parameter | Nilai |
+|---|---|
+| `wpp` | salah satu dari 11 kode; kosong berarti semua |
+| `dari_tahun` | opsional, 1900–2100 |
+| `sampai_tahun` | opsional, 1900–2100, tidak boleh mendahului `dari_tahun` |
+
+Jumlah kapal dan total tonase dalam **satu respons**, bukan dua endpoint: keduanya dibaca
+saling-silang — armada menyusut sementara tonasenya naik adalah inti grafik ini — dan dua
+panggilan bisa saja menjawab dari dua filter yang berbeda.
+
+```json
+{
+  "data": {
+    "filter": { "wpp": "571", "dari_tahun": 2019, "sampai_tahun": 2021 },
+    "unit": { "armada": "unit", "gt": "GT" },
+    "tahun": [2019, 2020, 2021],
+    "armada": [
+      { "wpp": "571", "titik": [ { "tahun": 2019, "nilai": 50504 }, { "tahun": 2020, "nilai": 66998 } ] }
+    ],
+    "gt": [
+      { "wpp": "571", "titik": [ { "tahun": 2019, "nilai": 250782 }, { "tahun": 2020, "nilai": 277145 } ] }
+    ]
+  }
+}
+```
+
+`tahun` adalah sumbu-x gabungan seluruh seri, supaya klien yang menggambar sebelas garis
+tidak perlu menghitung irisannya sendiri.
+
+#### Tahun yang tidak dilaporkan dikosongkan, bukan dinolkan
+
+`titik` hanya memuat tahun yang benar-benar punya baris. Berbeda dengan `ikan/grafik/trip`
+dan `bsc/grafik/trip` yang mengisi periode kosong dengan nol pada rentang terbatas: di
+sana nol berarti "tidak ada trip", di sini nol akan berarti "armadanya hilang" — klaim
+yang sama sekali lain dari "tidak dilaporkan".
+
+#### Tidak ada total
+
+Tidak ada `total_armada` maupun `total_gt`, dan itu disengaja. Keduanya **stok** yang
+dihitung ulang setiap tahun; menjumlahkan 1990 sampai 2021 melaporkan armada yang jauh
+lebih besar daripada yang pernah ada. Bandingkan dengan produksi, yang merupakan **aliran**
+dan karenanya memang ditotal.
+
+### Grafik produksi — `GET /api/v1/ext/stsc/grafik/produksi`
+
+| Parameter | Nilai |
+|---|---|
+| `wpp` | salah satu dari 11 kode; kosong berarti semua |
+| `komoditas` | opsional; kosong berarti semua |
+| `dari_tahun`, `sampai_tahun` | sama dengan grafik armada |
+
+```json
+{
+  "data": {
+    "filter": { "wpp": null, "komoditas": "Rajungan", "dari_tahun": 2019, "sampai_tahun": 2021 },
+    "unit": "ton",
+    "tahun": [2019, 2020, 2021],
+    "total_produksi_ton": 317463.64,
+    "komoditas": [
+      {
+        "komoditas": "Rajungan",
+        "total_produksi_ton": 317463.64,
+        "seri": [
+          { "wpp": "571", "titik": [ { "tahun": 2019, "nilai": 2833.5 }, { "tahun": 2020, "nilai": 3068.38 } ] }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Bersarang per komoditas, lalu per WPPNRI — satu panel per komoditas, sebelas garis di
+tiap panel. Menyaring dengan `wpp` **tidak mengubah bentuknya**, hanya menyisakan satu
+garis per panel, jadi klien tidak perlu bercabang berdasarkan filter yang kebetulan ia
+kirim.
+
+Angka produksi dijumlahkan per (tahun, WPPNRI, komoditas). Pada data sekarang penjumlahan
+itu tidak melakukan apa-apa — satu baris per kunci — dan tetap benar kalau suatu saat hulu
+memecah satu angka menjadi dua baris.
+
+### Warna garis bukan urusan API
+
+Tidak ada `color` di respons mana pun, termasuk yang ini. Palet per WPPNRI adalah keputusan
+tampilan, bukan data: ia berubah saat tema situs berubah, ia berbeda antara grafik dan peta,
+dan menaruhnya di sini berarti mendeploy backend untuk mengganti satu warna. Peta
+`wpp => warna` tinggal jadi konstanta di front-end, dengan `value` dari `opsi/wpp` sebagai
+kuncinya.
+
+---
+
 ## Read-only: bagaimana ditegakkan
 
 Tiga lapis, dari luar ke dalam:
@@ -755,6 +1138,9 @@ aplikasinya.
 | `routes/ext-api.php` | route `/api/v1/ext/*` |
 | `app/Services/Coast/` | logika COAST: daftar desa, summary, resolver nama wilayah |
 | `app/Services/Ikan/` | logika IKAN: rantai opsi filter |
+| `app/Services/Bsc/` | logika BSC: rantai opsi, grafik trip, komposisi, frekuensi lebar |
+| `app/Services/Hiupari/` | logika HIUPARI: daftar spesies dan frekuensi panjang |
+| `app/Services/Stsc/` | logika STSC: opsi WPPNRI/komoditas, grafik armada dan produksi |
 | `app/Models/External/Coast/` | model tabel COAST |
 | `app/Console/Commands/DatasourcesStatus.php` | `php artisan cms:datasources` |
 | `tests/Feature/Datasource/ExternalDatasourceTest.php` | uji registry, guard, middleware |
@@ -763,4 +1149,7 @@ aplikasinya.
 | `tests/Feature/Ikan/IkanTripChartApiTest.php` | uji grafik trip IKAN |
 | `tests/Feature/Ikan/IkanCatchChartApiTest.php` | uji grafik tangkapan IKAN |
 | `tests/Feature/Ikan/IkanLengthFrequencyApiTest.php` | uji grafik frekuensi panjang IKAN |
+| `tests/Feature/Bsc/BscApiTest.php` | uji keempat permukaan BSC |
+| `tests/Feature/Hiupari/HiupariApiTest.php` | uji kedua permukaan HIUPARI |
+| `tests/Feature/Stsc/StscApiTest.php` | uji keempat endpoint STSC |
 | `docs/openapi.yaml` | spesifikasi OpenAPI, publik + eksternal |

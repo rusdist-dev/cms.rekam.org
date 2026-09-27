@@ -1,12 +1,21 @@
 <?php
 
+use App\Http\Controllers\ExtApi\Bsc\CatchChartController as BscCatchChartController;
+use App\Http\Controllers\ExtApi\Bsc\FilterController as BscFilterController;
+use App\Http\Controllers\ExtApi\Bsc\LengthFrequencyController as BscLengthFrequencyController;
+use App\Http\Controllers\ExtApi\Bsc\TripChartController as BscTripChartController;
 use App\Http\Controllers\ExtApi\Coast\DesaController;
 use App\Http\Controllers\ExtApi\Coast\KawasanKonservasiController;
 use App\Http\Controllers\ExtApi\Coast\StatistikController;
+use App\Http\Controllers\ExtApi\Hiupari\FilterController as HiupariFilterController;
+use App\Http\Controllers\ExtApi\Hiupari\LengthFrequencyController as HiupariLengthFrequencyController;
+use App\Http\Controllers\ExtApi\Ikan\CatchChartController;
 use App\Http\Controllers\ExtApi\Ikan\FilterController as IkanFilterController;
 use App\Http\Controllers\ExtApi\Ikan\LengthFrequencyController;
-use App\Http\Controllers\ExtApi\Ikan\CatchChartController;
 use App\Http\Controllers\ExtApi\Ikan\TripChartController;
+use App\Http\Controllers\ExtApi\Stsc\ArmadaChartController as StscArmadaChartController;
+use App\Http\Controllers\ExtApi\Stsc\FilterController as StscFilterController;
+use App\Http\Controllers\ExtApi\Stsc\ProduksiChartController as StscProduksiChartController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -94,6 +103,61 @@ Route::middleware(['resolve.public.tenant', 'throttle:ext-api'])
 
                 // Length-frequency histogram, with Lc computed and Lm supplied.
                 Route::get('grafik/frekuensi-panjang', LengthFrequencyController::class)->name('grafik.frekuensi-panjang');
+            });
+
+        // BSC — blue swimming crab landings: trips, and the crabs measured
+        // on them. Same four questions as IKAN over a different schema: no
+        // WPPNRI, no per-species catch table, carapace width instead of
+        // length, and a gonad stage that lets Lm be computed rather than
+        // supplied.
+        Route::middleware(['datasource:bsc', $cacheHeaders])
+            ->prefix('bsc')
+            ->name('bsc.')
+            ->group(function () {
+                Route::prefix('opsi')->name('opsi.')->group(function () {
+                    Route::get('provinsi', [BscFilterController::class, 'provinsi'])->name('provinsi');
+                    Route::get('kabupaten', [BscFilterController::class, 'kabupaten'])->name('kabupaten');
+                    Route::get('lokasi-pendaratan', [BscFilterController::class, 'lokasiPendaratan'])->name('lokasi-pendaratan');
+                    Route::get('jenis-pendataan', [BscFilterController::class, 'jenisPendataan'])->name('jenis-pendataan');
+                    Route::get('alat-tangkap', [BscFilterController::class, 'alatTangkap'])->name('alat-tangkap');
+                    Route::get('jenis-tangkapan', [BscFilterController::class, 'jenisTangkapan'])->name('jenis-tangkapan');
+                    Route::get('spesies', [BscFilterController::class, 'spesies'])->name('spesies');
+                });
+
+                Route::get('grafik/trip', BscTripChartController::class)->name('grafik.trip');
+                Route::get('grafik/tangkapan', BscCatchChartController::class)->name('grafik.tangkapan');
+                Route::get('grafik/frekuensi-lebar', BscLengthFrequencyController::class)->name('grafik.frekuensi-lebar');
+            });
+
+        // HIUPARI — sharks and rays. A deliberately narrow surface: one
+        // species list, and the length histogram it filters.
+        Route::middleware(['datasource:hiupari', $cacheHeaders])
+            ->prefix('hiupari')
+            ->name('hiupari.')
+            ->group(function () {
+                Route::get('opsi/spesies', [HiupariFilterController::class, 'spesies'])->name('opsi.spesies');
+                Route::get('grafik/frekuensi-panjang', HiupariLengthFrequencyController::class)->name('grafik.frekuensi-panjang');
+            });
+
+        // STSC — national fisheries statistics. Not landings this time but the
+        // published aggregate: one row per year per WPPNRI, 1990–2021. No
+        // trips, no individuals, so no chained dropdowns — WPPNRI and
+        // commodity are two axes of one grid rather than a hierarchy.
+        Route::middleware(['datasource:stsc', $cacheHeaders])
+            ->prefix('stsc')
+            ->name('stsc.')
+            ->group(function () {
+                Route::prefix('opsi')->name('opsi.')->group(function () {
+                    Route::get('wpp', [StscFilterController::class, 'wpp'])->name('wpp');
+                    Route::get('komoditas', [StscFilterController::class, 'komoditas'])->name('komoditas');
+                });
+
+                // Fleet count and fleet tonnage together: the two series are
+                // read against each other.
+                Route::get('grafik/armada', StscArmadaChartController::class)->name('grafik.armada');
+
+                // Landed weight per commodity, one line per WPPNRI.
+                Route::get('grafik/produksi', StscProduksiChartController::class)->name('grafik.produksi');
             });
 
         // -- datasource groups go here; each one applies $cacheHeaders --
