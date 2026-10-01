@@ -76,6 +76,7 @@ class PartnerService
         $partner->fill([
             'name' => $data['name'],
             'title' => Partner::normaliseTranslatable($data['title'] ?? []),
+            'category' => $data['category'] ?? null,
             'url' => $data['url'] ?? null,
             'is_active' => $data['is_active'] ?? true,
         ]);

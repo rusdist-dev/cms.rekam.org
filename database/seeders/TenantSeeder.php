@@ -29,6 +29,7 @@ class TenantSeeder extends Seeder
                 'news_programs' => true,
                 'events' => true,
                 'event_rundown' => true,
+                'event_benefit' => true,
                 'team' => true,
                 'partners' => true,
                 'contacts' => true,
@@ -49,6 +50,7 @@ class TenantSeeder extends Seeder
                 // Confirmed 2026-09-04: perikanan.org does not run events.
                 'events' => false,
                 'event_rundown' => false,
+                'event_benefit' => false,
                 'team' => true,
                 'partners' => true,
                 'contacts' => true,

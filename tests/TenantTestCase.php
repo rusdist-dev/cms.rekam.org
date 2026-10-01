@@ -43,7 +43,7 @@ abstract class TenantTestCase extends TestCase
 
         $this->rekam = $this->makeTenant('rekam', 'Rekam', [
             'news' => true, 'news_programs' => true, 'events' => true,
-            'event_rundown' => true, 'team' => true, 'partners' => true,
+            'event_rundown' => true, 'event_benefit' => true, 'team' => true, 'partners' => true,
             'contacts' => true, 'units' => true,
             // Confirmed 2026-09-08: rekam.org now runs Publikasi too.
             'publications' => true, 'milestones' => false,
@@ -54,7 +54,7 @@ abstract class TenantTestCase extends TestCase
         // (units). Both now run publications.
         $this->perikanan = $this->makeTenant('perikanan', 'Perikanan', [
             'news' => true, 'news_programs' => true, 'events' => false,
-            'event_rundown' => false, 'team' => true, 'partners' => true,
+            'event_rundown' => false, 'event_benefit' => false, 'team' => true, 'partners' => true,
             'contacts' => true, 'publications' => true, 'milestones' => true,
             'units' => false,
         ]);

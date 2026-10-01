@@ -76,4 +76,42 @@ class PartnersPublicApiTest extends TenantTestCase
         // this in, since it was off until this date (context.md §5.2.g).
         $this->getPublic('/api/v1/publications')->assertOk();
     }
+
+    public function test_filtering_by_category(): void
+    {
+        Partner::factory()->create(['category' => 'ngo']);
+        Partner::factory()->create(['category' => 'donor']);
+
+        $response = $this->getPublic('/api/v1/partners?category=ngo');
+
+        $response->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.category', 'ngo');
+    }
+
+    public function test_grouped_response_buckets_partners_by_category(): void
+    {
+        $ngo = Partner::factory()->create(['category' => 'ngo', 'sort_order' => 0]);
+        $donor = Partner::factory()->create(['category' => 'donor', 'sort_order' => 1]);
+        $other = Partner::factory()->create(['category' => null, 'sort_order' => 2]);
+        Partner::factory()->inactive()->create(['category' => 'ngo']);
+
+        $response = $this->getPublic('/api/v1/partners?grouped=1');
+
+        $response->assertOk();
+
+        // Config order (pemerintahan, universitas, swasta, ngo, donor), empty
+        // categories omitted, uncategorised partners trail in "Lainnya".
+        $this->assertSame(
+            [
+                ['category' => 'ngo', 'ids' => [$ngo->id]],
+                ['category' => 'donor', 'ids' => [$donor->id]],
+                ['category' => null, 'ids' => [$other->id]],
+            ],
+            collect($response->json('data'))
+                ->map(fn (array $group) => [
+                    'category' => $group['category'],
+                    'ids' => array_column($group['partners'], 'id'),
+                ])
+                ->all(),
+        );
+    }
 }

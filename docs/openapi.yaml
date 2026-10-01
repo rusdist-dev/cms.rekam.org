@@ -194,7 +194,7 @@ paths:
           schema: { type: string }
       responses:
         '200':
-          description: OK — `rundowns` is present only when the tenant's `event_rundown` feature is on.
+          description: OK — `rundowns`/`benefits` are present only when the tenant's respective feature is on.
           content:
             application/json:
               schema:
@@ -1507,6 +1507,11 @@ components:
         title: { type: string }
         description: { type: string, nullable: true }
 
+    EventBenefit:
+      type: object
+      properties:
+        title: { type: string }
+
     Event:
       type: object
       properties:
@@ -1531,6 +1536,10 @@ components:
           type: array
           items: { $ref: '#/components/schemas/EventRundown' }
           description: Present only when the tenant's `event_rundown` feature is on.
+        benefits:
+          type: array
+          items: { $ref: '#/components/schemas/EventBenefit' }
+          description: Present only when the tenant's `event_benefit` feature is on.
 
     EventListResponse:
       type: object
@@ -1671,16 +1680,22 @@ components:
 
     ContactRequest:
       type: object
-      required: [name, email, subject, message]
+      required: [name, email, message]
       properties:
         name: { type: string, maxLength: 255 }
         email: { type: string, format: email, maxLength: 255 }
         phone: { type: string, maxLength: 32, nullable: true }
-        subject: { type: string, maxLength: 255 }
+        subject: { type: string, maxLength: 255, nullable: true }
         message: { type: string, maxLength: 5000 }
+        address: { type: string, maxLength: 2000, nullable: true }
+        is_private: { type: boolean, nullable: true, default: false }
         website:
           type: string
-          description: Honeypot — must stay empty.
+          description: >
+            Honeypot — must be omitted or empty. Any non-empty value is read as
+            a bot: the response is still `201`, but the message is silently
+            discarded and never reaches the inbox. Do not bind a real
+            "website" input on the form to this field.
           default: ''
 
     # -- External: COAST -----------------------------------------------------

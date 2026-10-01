@@ -33,6 +33,15 @@ export default (endpoint, initial, options = {}) => resourceForm(endpoint, initi
                 ? { path: this.form.cover_path, url: this.form.cover_url, name: null, size: null }
                 : null
 
+            // Seeded directly rather than left for the picker's own x-effect
+            // to publish: that effect reacting to `coverValue` via Alpine's
+            // x-modelable entanglement is not reliable right after this kind
+            // of bulk, post-load assignment (see resourceForm.js's buildBody
+            // comment — confirmed live for the `form.<name>`-bound pickers,
+            // and this is the same mechanism). Setting it here directly,
+            // synchronously, sidesteps that gap instead of hoping it resolves.
+            this.mediaValues.cover = this.coverValue
+
             // remove_cover starts false: loading a record is not a request to
             // clear its image.
             this.form.remove_cover = false

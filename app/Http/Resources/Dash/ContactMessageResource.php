@@ -16,6 +16,8 @@ class ContactMessageResource extends JsonResource
             'phone' => $this->phone,
             'subject' => $this->subject,
             'message' => $this->message,
+            'address' => $this->address,
+            'is_private' => $this->is_private,
             'status' => $this->status,
             'ip' => $this->ip,
             'created_at' => $this->created_at?->format('Y-m-d H:i'),

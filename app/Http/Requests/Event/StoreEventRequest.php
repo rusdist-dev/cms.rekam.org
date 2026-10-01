@@ -40,6 +40,7 @@ class StoreEventRequest extends FormRequest
             ],
             $this->seoRules(),
             $this->rundownRules(),
+            $this->benefitRules(),
         );
 
         return $rules;
@@ -78,6 +79,34 @@ class StoreEventRequest extends FormRequest
         return $rules;
     }
 
+    /**
+     * Benefit rows arrive with their parent and are validated per index, same
+     * rule as rundown rows (context.md §4.11).
+     */
+    private function benefitRules(): array
+    {
+        if (! app(TenantManager::class)->hasFeature('event_benefit')) {
+            return ['benefits' => ['prohibited']];
+        }
+
+        $rules = [
+            'benefits' => ['array', 'max:100'],
+            'benefits.*.id' => ['nullable', 'integer'],
+            'benefits.*.title' => ['array'],
+        ];
+
+        $default = config('cms.default_locale');
+
+        foreach (config('cms.locales') as $locale) {
+            $rules["benefits.*.title.{$locale}"] = [
+                $locale === $default ? 'required' : 'nullable',
+                'string', 'max:255',
+            ];
+        }
+
+        return $rules;
+    }
+
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
@@ -90,6 +119,7 @@ class StoreEventRequest extends FormRequest
         return [
             'rundowns.prohibited' => 'Modul rundown tidak aktif untuk company ini.',
             'rundowns.*.time.date_format' => 'Jam sesi harus dalam format HH:MM.',
+            'benefits.prohibited' => 'Modul benefit tidak aktif untuk company ini.',
             'end_at.after_or_equal' => 'Waktu selesai tidak boleh sebelum waktu mulai.',
         ];
     }

@@ -15,12 +15,16 @@
         @include('shared.form-states')
 
         @php
-            // The rundown tab only exists for tenants that have the feature
-            // (context.md §5.6) — plan.md §5.2.d.
+            // The rundown/benefit tabs only exist for tenants that have the
+            // feature (context.md §5.6) — plan.md §5.2.d.
             $tabs = ['detail' => 'Detail Acara'];
 
             if (app(\App\Services\TenantManager::class)->hasFeature('event_rundown')) {
                 $tabs['rundown'] = 'Rundown';
+            }
+
+            if (app(\App\Services\TenantManager::class)->hasFeature('event_benefit')) {
+                $tabs['benefit'] = 'Benefit';
             }
 
             $tabs['seo'] = 'SEO';
@@ -34,6 +38,12 @@
             @feature('event_rundown')
                 <x-tab-panel name="rundown">
                     @include('events.partials.rundown-panel')
+                </x-tab-panel>
+            @endfeature
+
+            @feature('event_benefit')
+                <x-tab-panel name="benefit">
+                    @include('events.partials.benefit-panel')
                 </x-tab-panel>
             @endfeature
 

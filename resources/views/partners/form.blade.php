@@ -26,6 +26,11 @@
                                       icon="link" x-model="form.url" placeholder="https://…" />
                     </x-form.field>
 
+                    <x-form.field name="category" label="Kategori" alpine>
+                        <x-form.select id="category" name="category" alpine placeholder="Pilih kategori…"
+                                       :options="config('cms.partner_categories')" x-model="form.category" />
+                    </x-form.field>
+
                     <x-form.lang-tabs completeness="{ id: !!form.title.id, en: !!form.title.en }">
                         @foreach (config('cms.locales') as $locale)
                             <x-form.lang-panel :locale="$locale">

@@ -43,6 +43,25 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Partner Categories
+    |--------------------------------------------------------------------------
+    |
+    | A fixed set rather than a `TaxonomyService` group — unlike news/event/pub
+    | categories, partners group by organisation type, which doesn't vary per
+    | tenant. The public partners API groups by these keys.
+    |
+    */
+
+    'partner_categories' => [
+        'pemerintahan' => 'Pemerintahan',
+        'universitas' => 'Universitas',
+        'swasta' => 'Swasta',
+        'ngo' => 'NGO',
+        'donor' => 'Donor',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Feature Flags
     |--------------------------------------------------------------------------
     |
@@ -60,6 +79,7 @@ return [
         'news_programs' => ['label' => 'Program Berita', 'default' => true, 'core' => false],
         'events' => ['label' => 'Events', 'default' => true, 'core' => false],
         'event_rundown' => ['label' => 'Rundown Event', 'default' => false, 'core' => false],
+        'event_benefit' => ['label' => 'Benefit Event', 'default' => false, 'core' => false],
         'team' => ['label' => 'Tim', 'default' => true, 'core' => false],
         'publications' => ['label' => 'Publikasi', 'default' => false, 'core' => false],
         'partners' => ['label' => 'Partner', 'default' => true, 'core' => false],

@@ -138,6 +138,23 @@ GET /api/v1/publications?category=<slug>
 
 ```
 GET /api/v1/partners
+GET /api/v1/partners?category=<slug>
+GET /api/v1/partners?grouped=1
+```
+`category` adalah salah satu dari `pemerintahan`, `universitas`, `swasta`, `ngo`, `donor`
+(`cms.partner_categories`) — bukan taksonomi per-tenant seperti kategori berita/event/publikasi.
+
+`grouped=1` mengelompokkan partner per kategori, sesuai urutan di atas; kategori tanpa
+partner dilewati, dan partner tanpa kategori ditaruh di bucket `"Lainnya"` (`category: null`)
+di akhir:
+```json
+{
+  "data": [
+    { "category": "ngo", "label": "NGO", "partners": [ ... ] },
+    { "category": "donor", "label": "Donor", "partners": [ ... ] },
+    { "category": null, "label": "Lainnya", "partners": [ ... ] }
+  ]
+}
 ```
 
 ### Milestone (khusus tenant dengan modul `milestones`)

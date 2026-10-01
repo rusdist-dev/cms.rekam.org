@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Event;
+use App\Models\EventBenefit;
 use App\Models\EventRundown;
 use App\Support\SlugMaker;
 use Illuminate\Http\UploadedFile;
@@ -30,6 +31,7 @@ class EventService
             $event->save();
 
             $this->syncRundowns($event, $data['rundowns'] ?? null);
+            $this->syncBenefits($event, $data['benefits'] ?? null);
             $this->publicCache->forget('events');
 
             return $event;
@@ -52,6 +54,7 @@ class EventService
             $event->save();
 
             $this->syncRundowns($event, $data['rundowns'] ?? null);
+            $this->syncBenefits($event, $data['benefits'] ?? null);
 
             if ($previousCover && $event->cover_path !== $previousCover) {
                 $this->media->delete($previousCover);
@@ -121,6 +124,41 @@ class EventService
 
         // Whatever the form no longer holds has been removed by the editor.
         $event->rundowns()->whereKeyNot($keptIds)->delete();
+    }
+
+    /**
+     * Creates, updates and deletes benefit rows in one pass, inside the
+     * parent's transaction — same rule as rundown rows (context.md §4.11).
+     */
+    private function syncBenefits(Event $event, ?array $rows): void
+    {
+        if ($rows === null || ! $this->tenants->hasFeature('event_benefit')) {
+            return;
+        }
+
+        $keptIds = [];
+
+        foreach (array_values($rows) as $index => $row) {
+            $attributes = [
+                'title' => EventBenefit::normaliseTranslatable($row['title'] ?? []),
+                'sort_order' => $index,
+            ];
+
+            $existing = isset($row['id'])
+                ? $event->benefits()->whereKey($row['id'])->first()
+                : null;
+
+            if ($existing) {
+                $existing->update($attributes);
+                $keptIds[] = $existing->id;
+
+                continue;
+            }
+
+            $keptIds[] = $event->benefits()->create($attributes)->id;
+        }
+
+        $event->benefits()->whereKeyNot($keptIds)->delete();
     }
 
     private function fill(Event $event, array $data): void

@@ -14,6 +14,7 @@ class PartnerResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'title' => $this->title ?? ['id' => null, 'en' => null],
+            'category' => $this->category,
             // {path, url, name, size} for the edit form's mediaPicker.
             'logo' => $this->logo_path ? [
                 'path' => $this->logo_path,

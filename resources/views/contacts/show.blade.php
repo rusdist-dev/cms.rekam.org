@@ -98,6 +98,18 @@
                             </dd>
                         </div>
 
+                        <div x-show="data?.address">
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Alamat</dt>
+                            <dd class="mt-0.5 whitespace-pre-line text-gray-800" x-text="data?.address"></dd>
+                        </div>
+
+                        <div x-show="data?.is_private">
+                            <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Privasi</dt>
+                            <dd class="mt-0.5">
+                                <x-badge variant="warning">Pesan Pribadi</x-badge>
+                            </dd>
+                        </div>
+
                         <div>
                             <dt class="text-xs font-medium uppercase tracking-wide text-gray-400">Diterima</dt>
                             <dd class="mt-0.5 text-gray-800" x-text="data?.created_at"></dd>

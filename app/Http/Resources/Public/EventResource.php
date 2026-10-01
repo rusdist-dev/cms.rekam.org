@@ -33,6 +33,10 @@ class EventResource extends JsonResource
                 app(TenantManager::class)->hasFeature('event_rundown') && $this->relationLoaded('rundowns'),
                 fn () => ['rundowns' => EventRundownResource::collection($this->rundowns)->resolve()],
             ),
+            $this->mergeWhen(
+                app(TenantManager::class)->hasFeature('event_benefit') && $this->relationLoaded('benefits'),
+                fn () => ['benefits' => EventBenefitResource::collection($this->benefits)->resolve()],
+            ),
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Partner;
 
 use App\Http\Requests\Concerns\ValidatesTranslatable;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StorePartnerRequest extends FormRequest
 {
@@ -20,6 +21,7 @@ class StorePartnerRequest extends FormRequest
             $this->translatableRules(['title' => false]),
             [
                 'name' => ['required', 'string', 'max:255'],
+                'category' => ['nullable', Rule::in(array_keys(config('cms.partner_categories')))],
                 'url' => ['nullable', 'url', 'max:255'],
                 'logo' => ['nullable', 'image', 'mimes:'.implode(',', config('cms.media.image.mimes')), 'max:'.config('cms.media.image.max_kb')],
                 'remove_logo' => ['boolean'],
@@ -32,6 +34,7 @@ class StorePartnerRequest extends FormRequest
     {
         return $this->translatableAttributes(['title' => 'keterangan']) + [
             'name' => 'nama partner',
+            'category' => 'kategori',
             'url' => 'tautan situs',
             'logo' => 'logo',
             'is_active' => 'status tampil',

@@ -15,6 +15,7 @@ class PartnerFactory extends Factory
         return [
             'name' => $this->faker->unique()->company(),
             'title' => ['id' => 'Mitra Strategis', 'en' => null],
+            'category' => null,
             'logo_path' => null,
             'url' => $this->faker->url(),
             'sort_order' => 0,

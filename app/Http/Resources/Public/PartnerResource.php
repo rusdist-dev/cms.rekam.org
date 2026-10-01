@@ -14,6 +14,8 @@ class PartnerResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'title' => $this->trans('title'),
+            'category' => $this->category,
+            'category_label' => $this->category ? (config('cms.partner_categories')[$this->category] ?? $this->category) : null,
             'logo_url' => app(MediaService::class)->url($this->logo_path),
             'url' => $this->url,
         ];

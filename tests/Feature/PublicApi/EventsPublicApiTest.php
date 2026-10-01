@@ -77,6 +77,37 @@ class EventsPublicApiTest extends TenantTestCase
         $this->assertArrayNotHasKey('rundowns', $response->json('data'));
     }
 
+    public function test_detail_includes_benefits_when_the_feature_is_on(): void
+    {
+        $this->rekam->update(['features' => array_merge($this->rekam->features, ['event_benefit' => true])]);
+
+        $event = Event::factory()->create(['status' => 'published', 'slug' => ['id' => 'acara-benefit', 'en' => null]]);
+        $event->benefits()->create([
+            'title' => ['id' => 'Sertifikat', 'en' => null],
+            'sort_order' => 0,
+        ]);
+
+        $this->getPublic('/api/v1/events/acara-benefit')
+            ->assertOk()
+            ->assertJsonPath('data.benefits.0.title', 'Sertifikat');
+    }
+
+    public function test_benefits_are_absent_when_the_feature_is_off(): void
+    {
+        $this->rekam->update(['features' => array_merge($this->rekam->features, ['event_benefit' => false])]);
+
+        $event = Event::factory()->create(['status' => 'published', 'slug' => ['id' => 'acara-tanpa-benefit', 'en' => null]]);
+        $event->benefits()->create([
+            'title' => ['id' => 'Sertifikat', 'en' => null],
+            'sort_order' => 0,
+        ]);
+
+        $response = $this->getPublic('/api/v1/events/acara-tanpa-benefit');
+
+        $response->assertOk();
+        $this->assertArrayNotHasKey('benefits', $response->json('data'));
+    }
+
     public function test_upcoming_filter(): void
     {
         Event::factory()->create(['status' => 'published', 'start_at' => now()->addWeek(), 'end_at' => now()->addWeek()->addHour()]);

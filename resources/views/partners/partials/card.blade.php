@@ -37,9 +37,13 @@
         <p class="truncate text-xs text-gray-500" x-text="partner.title?.id ?? '—'"></p>
     </div>
 
-    <template x-if="! partner.is_active">
-        <span class="mt-2">
+    <div class="mt-2 flex flex-wrap gap-1">
+        <template x-if="partner.category">
+            <x-badge variant="primary" size="sm" x-text="categoryLabels[partner.category] ?? partner.category"></x-badge>
+        </template>
+
+        <template x-if="! partner.is_active">
             <x-badge variant="gray" size="sm">Disembunyikan</x-badge>
-        </span>
-    </template>
+        </template>
+    </div>
 </div>

@@ -18,8 +18,14 @@ class ContactMessage extends TenantModel
         'phone',
         'subject',
         'message',
+        'address',
+        'is_private',
         'status',
         'ip',
+    ];
+
+    protected $casts = [
+        'is_private' => 'boolean',
     ];
 
     public function scopeStatus(Builder $query, ?string $status): Builder

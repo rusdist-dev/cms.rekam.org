@@ -29,7 +29,7 @@ class EventController extends Controller
         return $this->dataResponse($request, "events:{$slug}", function () use ($slug) {
             $event = Event::query()
                 ->published()
-                ->with('rundowns')
+                ->with(['rundowns', 'benefits'])
                 ->where('slug->id', $slug)
                 ->orWhere('slug->en', $slug)
                 ->firstOrFail();

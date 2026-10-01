@@ -3,6 +3,7 @@
 namespace Tests\Feature\Content;
 
 use App\Models\Event;
+use App\Models\EventBenefit;
 use App\Models\EventRundown;
 use Tests\TenantTestCase;
 
@@ -167,6 +168,108 @@ class EventCrudTest extends TenantTestCase
 
         $this->deleteJson(route('dash-api.events.force-destroy', $event->id))->assertNoContent();
         $this->assertSame(0, EventRundown::count());
+    }
+
+    public function test_benefit_rows_are_saved_with_the_event_in_one_request(): void
+    {
+        // context.md §4.11 — no per-row endpoint exists, same rule as rundown.
+        $response = $this->postJson(route('dash-api.events.store'), $this->payload([
+            'benefits' => [
+                ['title' => ['id' => 'Sertifikat', 'en' => 'Certificate']],
+                ['title' => ['id' => 'Konsumsi', 'en' => null]],
+            ],
+        ]));
+
+        $response->assertCreated();
+
+        $event = Event::first();
+        $this->assertSame(2, $event->benefits()->count());
+        $this->assertSame('Sertifikat', $event->benefits()->first()->title['id']);
+    }
+
+    public function test_benefit_order_follows_the_submitted_row_order(): void
+    {
+        $response = $this->postJson(route('dash-api.events.store'), $this->payload([
+            'benefits' => [
+                ['title' => ['id' => 'Konsumsi', 'en' => null]],
+                ['title' => ['id' => 'Sertifikat', 'en' => null]],
+            ],
+        ]));
+
+        $response->assertCreated();
+
+        $titles = Event::first()->benefits->pluck('title.id')->all();
+        $this->assertSame(['Konsumsi', 'Sertifikat'], $titles);
+    }
+
+    public function test_updating_creates_updates_and_deletes_benefit_rows_in_one_pass(): void
+    {
+        $create = $this->postJson(route('dash-api.events.store'), $this->payload([
+            'benefits' => [
+                ['title' => ['id' => 'Sertifikat', 'en' => null]],
+                ['title' => ['id' => 'Akan Dihapus', 'en' => null]],
+            ],
+        ]));
+
+        $event = Event::first();
+        $keepId = $event->benefits()->first()->id;
+
+        $this->postJson(route('dash-api.events.update', $event), $this->payload([
+            'benefits' => [
+                ['id' => $keepId, 'title' => ['id' => 'Sertifikat (diubah)', 'en' => null]],
+                ['title' => ['id' => 'Benefit Baru', 'en' => null]],
+            ],
+        ]))->assertOk();
+
+        $rows = $event->fresh()->benefits;
+
+        $this->assertSame(2, $rows->count());
+        $this->assertSame('Sertifikat (diubah)', $rows[0]->title['id']);
+        $this->assertSame('Benefit Baru', $rows[1]->title['id']);
+        $this->assertSame(0, EventBenefit::where('title->id', 'Akan Dihapus')->count());
+    }
+
+    public function test_an_empty_benefit_array_clears_every_row(): void
+    {
+        $this->postJson(route('dash-api.events.store'), $this->payload([
+            'benefits' => [['title' => ['id' => 'Sertifikat', 'en' => null]]],
+        ]));
+
+        $event = Event::first();
+
+        $this->postJson(route('dash-api.events.update', $event), $this->payload(['benefits' => []]))
+            ->assertOk();
+
+        $this->assertSame(0, $event->fresh()->benefits()->count());
+    }
+
+    public function test_benefit_validation_errors_are_indexed_by_row(): void
+    {
+        $response = $this->postJson(route('dash-api.events.store'), $this->payload([
+            'benefits' => [
+                ['title' => ['id' => 'Sertifikat', 'en' => null]],
+                ['title' => ['id' => '', 'en' => null]],
+            ],
+        ]));
+
+        $response->assertStatus(422)
+            ->assertJsonValidationErrors(['benefits.1.title.id'])
+            ->assertJsonMissingValidationErrors(['benefits.0.title.id']);
+    }
+
+    public function test_deleting_an_event_takes_its_benefits_with_it(): void
+    {
+        $this->postJson(route('dash-api.events.store'), $this->payload([
+            'benefits' => [['title' => ['id' => 'Sertifikat', 'en' => null]]],
+        ]));
+
+        $event = Event::first();
+
+        $this->deleteJson(route('dash-api.events.destroy', $event))->assertNoContent();
+        $this->assertSame(1, EventBenefit::count());
+
+        $this->deleteJson(route('dash-api.events.force-destroy', $event->id))->assertNoContent();
+        $this->assertSame(0, EventBenefit::count());
     }
 
     public function test_the_upcoming_filter_excludes_finished_events(): void

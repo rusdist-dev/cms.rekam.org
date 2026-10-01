@@ -84,6 +84,20 @@ class PartnerCrudTest extends TenantTestCase
             ->assertJsonValidationErrors('url');
     }
 
+    public function test_it_creates_a_partner_with_a_category(): void
+    {
+        $response = $this->postJson(route('dash-api.partners.store'), $this->payload(['category' => 'ngo']));
+
+        $response->assertCreated()->assertJsonPath('data.category', 'ngo');
+    }
+
+    public function test_the_category_field_is_restricted_to_known_values(): void
+    {
+        $this->postJson(route('dash-api.partners.store'), $this->payload(['category' => 'not-a-category']))
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('category');
+    }
+
     public function test_partners_are_invisible_from_the_other_company(): void
     {
         Partner::factory()->count(2)->create();

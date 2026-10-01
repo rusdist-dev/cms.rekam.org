@@ -58,6 +58,23 @@ class EventResource extends JsonResource
                 ]
             ),
 
+            // Benefit belongs to the response only where the module is on,
+            // same rule as rundown above (context.md §5.7).
+            $this->mergeWhen(
+                app(TenantManager::class)->hasFeature('event_benefit'),
+                fn () => [
+                    'benefits' => $this->whenLoaded(
+                        'benefits',
+                        fn () => EventBenefitResource::collection($this->benefits)->resolve(),
+                    ),
+                    'benefits_count' => $this->whenCounted(
+                        'benefits',
+                        fn () => $this->benefits_count,
+                        fn () => $this->relationLoaded('benefits') ? $this->benefits->count() : 0,
+                    ),
+                ]
+            ),
+
             'is_trashed' => $this->trashed(),
             'updated_at' => $this->updated_at?->format('Y-m-d H:i'),
         ];

@@ -4,6 +4,7 @@
     <div x-data="sortableList('{{ route('dash-api.partners.index') }}', [], {
             extra: {
                 editUrl: @js(\App\Support\RouteTemplate::for('partners.edit', 'partner')),
+                categoryLabels: @js(config('cms.partner_categories')),
             },
          })">
 

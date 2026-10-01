@@ -23,6 +23,8 @@ class ContactMessageFactory extends Factory
             'phone' => $this->faker->phoneNumber(),
             'subject' => $this->faker->sentence(4),
             'message' => $this->faker->paragraph(3),
+            'address' => $this->faker->address(),
+            'is_private' => false,
             'status' => 'unread',
             'ip' => $this->faker->ipv4(),
         ];

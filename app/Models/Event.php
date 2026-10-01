@@ -55,6 +55,11 @@ class Event extends TenantModel
         return $this->hasMany(EventRundown::class)->orderBy('sort_order');
     }
 
+    public function benefits(): HasMany
+    {
+        return $this->hasMany(EventBenefit::class)->orderBy('sort_order');
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', 'published');

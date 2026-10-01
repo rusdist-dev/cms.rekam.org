@@ -130,16 +130,27 @@ export default (endpoint, initial = {}, options = {}) => extend({
         // field keeps its file whenever it still carries a path/url; a field
         // replaced by a fresh upload is never "removed".
         //
-        // The value comes from `mediaValues`, not `form[key]`: the two agree
-        // only for pickers bound to `form.<name>`. News and events bind their
-        // cover to `coverValue` instead, leaving `form.cover` permanently
-        // null — which read as "no image" and sent remove_cover=1 on every
-        // edit, wiping the cover of any record saved without re-picking one.
+        // `mediaValues` is meant to always be current — the picker's own
+        // x-effect is supposed to keep it in sync — but for a picker bound
+        // straight to `form.<name>` (every cover/photo/logo except News and
+        // Events' `coverValue`), `load()` replacing the whole `form` object
+        // does not reliably re-trigger that effect: the picker visibly shows
+        // the loaded image (its own `value` is correct, kept live by Alpine's
+        // x-modelable entanglement) while `mediaValues[key]` stays stuck at
+        // the pre-load "nothing picked yet" snapshot from mount, forever —
+        // confirmed live, not just in theory. Trusting `mediaValues` whenever
+        // it merely *has the key* (the old check) means that stale snapshot
+        // never gets a chance to be corrected, and every edit that leaves the
+        // picker untouched wipes the file. `form[key]` doesn't have this
+        // problem for a directly-bound picker, so it is always the fallback
+        // whenever `mediaValues[key]` itself doesn't carry a path/url — not
+        // only when the key is altogether missing from `mediaValues`.
+        const hasFile = (v) => Boolean(v && (v.path || v.url))
         const removeFlags = {}
         managedKeys.forEach((key) => {
             if (filedKeys.has(key)) return
-            const current = key in this.mediaValues ? this.mediaValues[key] : this.form[key]
-            removeFlags[`remove_${key}`] = !(current && (current.path || current.url))
+            const current = hasFile(this.mediaValues[key]) ? this.mediaValues[key] : this.form[key]
+            removeFlags[`remove_${key}`] = !hasFile(current)
         })
 
         if (fileEntries.length === 0) {

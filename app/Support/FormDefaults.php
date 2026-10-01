@@ -55,6 +55,7 @@ class FormDefaults
             'cover' => null,
             'status' => 'draft',
             'rundowns' => [],
+            'benefits' => [],
         ];
     }
 
@@ -90,6 +91,7 @@ class FormDefaults
         return [
             'name' => '',
             'title' => self::translatable(),
+            'category' => '',
             'logo' => null,
             'url' => '',
             'is_active' => true,
@@ -148,6 +150,14 @@ class FormDefaults
             'time' => '',
             'title' => self::translatable(''),
             'description' => self::translatable(''),
+        ];
+    }
+
+    /** Blank benefit row used by the repeater when a new line is added. */
+    public static function benefitRow(): array
+    {
+        return [
+            'title' => self::translatable(''),
         ];
     }
 }

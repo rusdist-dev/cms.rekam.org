@@ -32,8 +32,8 @@ class EventApiController extends Controller
     {
         $query = Event::query()
             // Counted rather than loaded: the index only shows how many
-            // sessions there are (context.md §4.9).
-            ->withCount('rundowns')
+            // sessions/benefits there are (context.md §4.9).
+            ->withCount(['rundowns', 'benefits'])
             ->search($request->query('search'))
             ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
             ->when($request->query('category'), fn ($q, $cat) => $q->where('category', $cat))
@@ -49,9 +49,9 @@ class EventApiController extends Controller
 
     public function show(Event $event): JsonResponse
     {
-        // The form edits rundown rows inline, so they travel with the event
-        // (context.md §4.11).
-        $event->load('rundowns');
+        // The form edits rundown and benefit rows inline, so they travel with
+        // the event (context.md §4.11).
+        $event->load(['rundowns', 'benefits']);
 
         return response()->json(['data' => (new EventResource($event))->resolve()]);
     }
@@ -63,7 +63,7 @@ class EventApiController extends Controller
         $event = $this->service->create($request->validated(), $request->file('cover'));
 
         return response()->json(
-            ['data' => (new EventResource($event->load('rundowns')))->resolve()],
+            ['data' => (new EventResource($event->load(['rundowns', 'benefits'])))->resolve()],
             201
         );
     }
@@ -79,7 +79,7 @@ class EventApiController extends Controller
             $request->boolean('remove_cover'),
         );
 
-        return response()->json(['data' => (new EventResource($event->load('rundowns')))->resolve()]);
+        return response()->json(['data' => (new EventResource($event->load(['rundowns', 'benefits'])))->resolve()]);
     }
 
     public function destroy(Event $event): JsonResponse

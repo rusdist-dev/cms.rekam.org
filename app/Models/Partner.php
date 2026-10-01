@@ -17,6 +17,7 @@ class Partner extends TenantModel
     protected $fillable = [
         'name',
         'title',
+        'category',
         'logo_path',
         'url',
         'sort_order',
@@ -48,6 +49,11 @@ class Partner extends TenantModel
             $q->where('name', 'like', "%{$term}%")
                 ->orWhere('url', 'like', "%{$term}%");
         });
+    }
+
+    public function scopeCategory(Builder $query, ?string $category): Builder
+    {
+        return $category ? $query->where('category', $category) : $query;
     }
 
     protected static function activityModule(): string
