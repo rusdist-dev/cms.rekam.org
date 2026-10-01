@@ -62,6 +62,12 @@ tags:
       upstream: one row per year per WPPNRI, 1990-2021. No trips and no
       individuals, so no chained dropdowns and no dates - the filters are the
       area, the commodity and a year range.
+  - name: JOGO LAUT
+    description: >
+      External datasource. Coastal monitoring station in the Cilacap mangroves:
+      soil and air CO₂, tide, dissolved oxygen, pH, CTD and a weather mast,
+      one reading roughly every five minutes. Upstream stores UTC; every
+      timestamp returned is station time (+07:00).
 
 paths:
   /news:
@@ -1253,6 +1259,69 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/DatasourceUnavailable' }
 
+  /ext/jogolaut/monitoring:
+    get:
+      tags: [JOGO LAUT]
+      summary: The whole monitoring dashboard, as chart-neutral sections
+      description: >
+        Every chart, stat and status of the station dashboard in one response,
+        all computed over the same time window so they can be read against
+        each other. Nothing here is chart configuration: a time-series section
+        is a shared `x` axis plus self-describing series, and the client
+        chooses how to draw it.
+
+
+        Every `series[].data` is exactly as long as its section's `x`; a gap in
+        the record is `null`, never 0. Keys are stable snake_case; labels
+        follow `locale` and may change, so clients should key on `key`.
+
+
+        A section with no data is `{type, empty: true}`; one that failed
+        upstream is `{type, empty: true, error: true}` and does not fail the
+        response. A payload carrying an `error` is never cached.
+      parameters:
+        - name: include
+          in: query
+          description: >
+            Comma-separated section keys; only these are computed. Absent means
+            all. Order is ignored: sections always come back in the order of
+            the schema below.
+          schema: { type: string }
+          example: co2,do,windrose,kpi
+        - name: days
+          in: query
+          description: Window length, ending now. Defaults to 7.
+          schema: { type: integer, minimum: 1, maximum: 30, default: 7 }
+        - name: window
+          in: query
+          description: Points in the centered moving average applied to the tide. Must be odd.
+          schema: { type: integer, minimum: 3, maximum: 99, default: 11 }
+        - name: page
+          in: query
+          description: Page of the `table` section. Ignored unless `table` is included.
+          schema: { type: integer, minimum: 1, default: 1 }
+        - name: limit
+          in: query
+          description: Rows per page of the `table` section.
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        - name: locale
+          in: query
+          description: Language of labels and descriptions. Never changes a key.
+          schema: { type: string, enum: [id, en], default: id }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/JogoLautMonitoring' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/DatasourceUnavailable' }
+
 
 components:
   securitySchemes:
@@ -2336,3 +2405,221 @@ components:
               komoditas: { type: string, example: Rajungan }
               total_produksi_ton: { type: number, format: double, example: 317463.64 }
               seri: { $ref: '#/components/schemas/StscSeries' }
+
+    JogoLautSeries:
+      type: object
+      properties:
+        key: { type: string, example: co2_tanah }
+        label: { type: string, example: CO₂ Tanah }
+        unit: { type: string, example: ppm }
+        dec: { type: integer, description: Decimals every value is rounded to., example: 1 }
+        source: { type: string, description: Upstream table the values come from., example: data_co2 }
+        data:
+          type: array
+          description: Parallel to the section's `x`. `null` is a gap.
+          items: { type: number, nullable: true }
+          example: [412.1, null, 414.3]
+
+    JogoLautTimeseries:
+      type: object
+      description: >
+        A shared x-axis and series aligned to it. Series from another sensor
+        take the nearest reading within an hour, or `null` beyond that.
+      properties:
+        type: { type: string, enum: [timeseries] }
+        empty: { type: boolean, description: Present (true) only when the section has no data. }
+        error: { type: boolean, description: Present (true) only when the section failed upstream. }
+        x:
+          type: array
+          items: { type: string, example: '2026-10-01 07:00:00' }
+        series:
+          type: array
+          items: { $ref: '#/components/schemas/JogoLautSeries' }
+
+    JogoLautStatItem:
+      type: object
+      properties:
+        key: { type: string }
+        label: { type: string }
+        unit: { type: string }
+        dec: { type: integer }
+      additionalProperties: true
+
+    JogoLautMonitoring:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            generated_at: { type: string, example: '2026-10-01 12:00:00' }
+            timezone: { type: string, example: '+07:00' }
+            from: { type: string, example: '2026-09-24 12:00:00' }
+            to: { type: string, example: '2026-10-01 12:00:00' }
+            params:
+              type: object
+              description: The normalised parameters the payload was built from.
+              properties:
+                include: { type: array, items: { type: string } }
+                days: { type: integer }
+                window: { type: integer }
+                page: { type: integer }
+                limit: { type: integer }
+                locale: { type: string }
+        sections:
+          type: object
+          description: Only the sections asked for in `include`, always in this order.
+          properties:
+            co2:
+              allOf: [{ $ref: '#/components/schemas/JogoLautTimeseries' }]
+              description: 'Soil CO₂ timeline. Series: co2_tanah, co2_udara, pasut_ma.'
+            flux:
+              allOf: [{ $ref: '#/components/schemas/JogoLautTimeseries' }]
+              description: >
+                Respiration and carbon flux from consecutive soil CO₂ readings,
+                averaged per station hour and smoothed (`ma_window`). Adds
+                `resolution: hour`, `ma_window` and `latest` (the last
+                unsmoothed values). Positive is emission, negative is uptake.
+            do:
+              allOf: [{ $ref: '#/components/schemas/JogoLautTimeseries' }]
+              description: 'DO timeline. Series: do, suhu_air, pasut_ma, curah_hujan.'
+            ph:
+              allOf: [{ $ref: '#/components/schemas/JogoLautTimeseries' }]
+              description: 'Water pH timeline. Series: ph, suhu_air, pasut_ma.'
+            ctd:
+              allOf: [{ $ref: '#/components/schemas/JogoLautTimeseries' }]
+              description: 'CTD timeline. Series: conductivity, suhu_air, level_air, pasut_ma.'
+            atm:
+              allOf: [{ $ref: '#/components/schemas/JogoLautTimeseries' }]
+              description: 'Weather mast timeline. Series: kec_angin (m/s), arah_angin, suhu_udara, kelembaban, curah_hujan.'
+            diurnal:
+              type: object
+              description: >
+                Soil CO₂ per hour of the day: `x` is 0–23, series `mean` and
+                `std` (population), `peak_hour` the hour with the highest mean.
+              properties:
+                type: { type: string, enum: [category] }
+                x: { type: array, items: { type: integer } }
+                series: { type: array, items: { $ref: '#/components/schemas/JogoLautSeries' } }
+                peak_hour: { type: integer, nullable: true }
+            windrose:
+              type: object
+              description: >
+                Sixteen directions, each with its count split by speed bin, so
+                a stacked rose needs no second request. Readings without both
+                a direction and a speed are left out.
+              properties:
+                type: { type: string, enum: [polar] }
+                unit: { type: string, example: m/s }
+                directions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      dir: { type: string, example: N }
+                      deg: { type: number, example: 0 }
+                      label: { type: string, example: Utara }
+                      count: { type: integer }
+                      by_speed:
+                        type: object
+                        additionalProperties: { type: integer }
+                        example: { '0-2': 1, '2-4': 1, '4-6': 0, '6+': 0 }
+                speed_bins:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key: { type: string, example: '0-2' }
+                      min: { type: number }
+                      max: { type: number, nullable: true }
+                      count: { type: integer }
+                summary:
+                  type: object
+                  properties:
+                    total: { type: integer }
+                    dominant: { type: object, properties: { dir: { type: string }, label: { type: string } } }
+                    dominant_speed_bin: { type: string }
+                    avg_speed: { type: number }
+                    max_speed: { type: number }
+                    beaufort_avg: { type: object, properties: { code: { type: string }, label: { type: string } } }
+                    beaufort_max: { type: object, properties: { code: { type: string }, label: { type: string } } }
+            correlation:
+              type: object
+              description: >
+                Pearson r between seven variables on the soil CO₂ timeline.
+                `values[i][j]` pairs `vars[i]` with `vars[j]`; `null` where r is
+                undefined (too few pairs, or a constant series).
+              properties:
+                type: { type: string, enum: [matrix] }
+                method: { type: string, enum: [pearson] }
+                vars: { type: array, items: { type: object, properties: { key: { type: string }, label: { type: string } } } }
+                values: { type: array, items: { type: array, items: { type: number, nullable: true } } }
+                max_pair:
+                  type: object
+                  nullable: true
+                  properties:
+                    a: { type: string }
+                    b: { type: string }
+                    r: { type: number }
+            analysis:
+              type: object
+              description: >
+                IQR outliers of soil CO₂; its cross-correlation with the tide
+                for lags 0–20 (`best_lag` points, `lag_minutes` at the nominal
+                sampling interval); the regression of soil CO₂ on the tide at
+                that lag; and a 12-step forecast along the tide's recent trend.
+              properties:
+                type: { type: string, enum: [analysis] }
+                outliers:
+                  type: object
+                  properties:
+                    method: { type: string, enum: [iqr] }
+                    items: { type: array, items: { type: object, properties: { index: { type: integer }, x: { type: string }, value: { type: number } } } }
+                    bounds: { type: object, properties: { lower: { type: number, nullable: true }, upper: { type: number, nullable: true }, q1: { type: number, nullable: true }, q3: { type: number, nullable: true } } }
+                ccf: { type: array, items: { type: object, properties: { lag: { type: integer }, r: { type: number, nullable: true } } } }
+                best_lag: { type: integer, nullable: true }
+                lag_minutes: { type: integer, nullable: true }
+                regression: { type: object, properties: { x: { type: string }, y: { type: string }, slope: { type: number }, intercept: { type: number }, n: { type: integer } } }
+                estimate_now: { type: number, nullable: true }
+                predictions: { type: array, items: { type: object, properties: { step: { type: integer }, minutes_ahead: { type: integer }, value: { type: number } } } }
+            ecosystem:
+              type: object
+              description: >
+                Dominant process from the 5-point trends of soil CO₂, DO and
+                tide. `color` is a token name for the client to map.
+              properties:
+                type: { type: string, enum: [status] }
+                code: { type: string, enum: [photosynthesis, respiration, tidal, mixed] }
+                color: { type: string, enum: [green, coral, blue, slate] }
+                label: { type: string }
+                description: { type: string }
+                confidence: { type: integer, minimum: 0, maximum: 100 }
+                trends: { type: object, properties: { co2_tanah: { type: number }, do: { type: number }, pasut_ma: { type: number } } }
+                co2_change: { type: object, properties: { delta: { type: number, nullable: true }, direction: { type: string, enum: [up, down, stable], nullable: true } } }
+            kpi:
+              type: object
+              description: >
+                Per sensor: latest reading (and when), min and max over the
+                window, and `delta` against yesterday's mean (station calendar
+                day). `jarak_air` is the gauge's raw distance to the water;
+                `pasut` is the tide level derived from it, as in the series.
+              properties:
+                type: { type: string, enum: [stats] }
+                items: { type: array, items: { $ref: '#/components/schemas/JogoLautStatItem' } }
+            gauges:
+              type: object
+              description: >
+                Heat index, DO, conductivity, water temperature and water pH,
+                each with a `level` code and a `color` token. A sensor with no
+                reading has `value`, `level` and `color` null.
+              properties:
+                type: { type: string, enum: [stats] }
+                items: { type: array, items: { $ref: '#/components/schemas/JogoLautStatItem' } }
+            table:
+              type: object
+              description: Raw soil-sensor rows in the window, newest first.
+              properties:
+                type: { type: string, enum: [table] }
+                order: { type: string, example: waktu_desc }
+                columns: { type: array, items: { type: object, properties: { key: { type: string }, label: { type: string }, unit: { type: string, nullable: true }, dec: { type: integer, nullable: true } } } }
+                rows: { type: array, items: { type: object, additionalProperties: true } }
+                pagination: { type: object, properties: { page: { type: integer }, limit: { type: integer }, total: { type: integer }, pages: { type: integer } } }

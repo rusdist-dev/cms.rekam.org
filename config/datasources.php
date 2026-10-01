@@ -150,6 +150,17 @@ return [
                 'password' => env('DS_STSC_PASSWORD'),
             ],
         ],
+        'jogolaut' => [
+            'label' => 'JOGOLAUT',
+            'read_only' => true,
+            'connection' => [
+                'host' => env('DS_JOGOLAUT_HOST', '127.0.0.1'),
+                'port' => env('DS_JOGOLAUT_PORT', '3306'),
+                'database' => env('DS_JOGOLAUT_DATABASE'),
+                'username' => env('DS_JOGOLAUT_USERNAME'),
+                'password' => env('DS_JOGOLAUT_PASSWORD'),
+            ],
+        ],
     ],
 
 ];

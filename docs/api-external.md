@@ -1125,6 +1125,99 @@ aplikasinya.
 
 ---
 
+## Endpoint JOGO LAUT
+
+Stasiun pemantauan pesisir di mangrove Cilacap: CO₂ tanah dan udara, pasang surut, oksigen
+terlarut, pH air, CTD, dan menara cuaca, kira-kira satu bacaan tiap 5 menit. Menggantikan
+halaman server-render `MonitoringController@index` di perikanan.org (yang tetap jalan sampai
+frontend baru siap). Konstanta fisik dan ambangnya ada di `config/jogolaut.php`, disalin dari
+perikanan.org; ubah keduanya sampai halaman lama dipensiunkan.
+
+Hulu menyimpan waktu dalam **UTC**; semua waktu di respons sudah **+07:00** (waktu stasiun),
+format `Y-m-d H:i:s`.
+
+### `GET /api/v1/ext/jogolaut/monitoring`
+
+Satu endpoint untuk seluruh dashboard. Semua section dihitung dari jendela waktu yang sama,
+jadi bisa dibaca berdampingan.
+
+| Param | Default | Keterangan |
+|---|---|---|
+| `include` | semua | section dipisah koma; hanya yang diminta yang dihitung. Urutan diabaikan |
+| `days` | 7 | panjang jendela, 1–30 |
+| `window` | 11 | titik moving average terpusat untuk pasut; ganjil, 3–99 |
+| `page`, `limit` | 1, 10 | hanya untuk section `table`; `limit` maks. 100 |
+| `locale` | `id` | `id` atau `en`; hanya mengubah label dan deskripsi, tidak pernah key |
+
+Parameter yang salah dijawab `422`, bukan dikoreksi diam-diam: `window=4` tidak dibulatkan
+menjadi 5 seperti di halaman lama.
+
+```json
+{
+  "data": {
+    "meta": { "generated_at": "2026-10-01 12:00:00", "timezone": "+07:00", "from": "...", "to": "...", "params": { } },
+    "sections": {
+      "co2": {
+        "type": "timeseries",
+        "x": ["2026-10-01 11:00:00", "2026-10-01 11:05:00"],
+        "series": [
+          { "key": "co2_tanah", "label": "CO₂ Tanah", "unit": "ppm", "dec": 1, "source": "data_co2", "data": [400, null] }
+        ]
+      }
+    }
+  }
+}
+```
+
+Section, selalu dalam urutan ini:
+
+| Section | `type` | Isi |
+|---|---|---|
+| `co2` | timeseries | timeline `data_co2`: `co2_tanah`, `co2_udara` (scd41), `pasut_ma` |
+| `flux` | timeseries | respirasi dan fluks karbon per jam stasiun + MA (`ma_window`); `latest` = nilai mentah terakhir |
+| `do` | timeseries | timeline DO: `do`, `suhu_air`, `pasut_ma`, `curah_hujan` |
+| `ph` | timeseries | timeline pH air: `ph`, `suhu_air`, `pasut_ma` |
+| `ctd` | timeseries | `conductivity`, `suhu_air`, `level_air`, `pasut_ma` |
+| `atm` | timeseries | timeline menara: `kec_angin` (m/s), `arah_angin`, `suhu_udara`, `kelembaban` (scd41), `curah_hujan` |
+| `diurnal` | category | rata-rata dan simpangan baku CO₂ tanah per jam 0–23, `peak_hour` |
+| `windrose` | polar | 16 arah × 4 kelas kecepatan, ringkasan dominan/rata-rata/maks/Beaufort |
+| `correlation` | matrix | Pearson 7 variabel, `max_pair` |
+| `analysis` | analysis | outlier IQR, CCF lag 0–20, regresi, prediksi 12 langkah |
+| `ecosystem` | status | `code` + `color` + label/deskripsi, `confidence`, tren |
+| `kpi` | stats | per sensor: terbaru, min, maks, delta vs rata-rata kemarin |
+| `gauges` | stats | indeks panas, DO, konduktivitas, suhu air, pH: `level` + `color` |
+| `table` | table | baris `data_co2`, terbaru dulu, berpaginasi |
+
+Aturan yang dijamin:
+
+- **panjang `x` = panjang setiap `series[].data`.** Celah data adalah `null`, tidak pernah 0.
+  Seri dari sensor lain di-align ke bacaan terdekat dalam 1 jam; lebih jauh dari itu `null`.
+- **angka dibulatkan sesuai `dec`** yang ikut dikirim di tiap seri/item.
+- **warna adalah nama token** (`green`, `amber`, `coral`, `teal`, `blue`, `violet`, `slate`),
+  bukan hex dan bukan kelas ikon. Frontend yang memetakan ke paletnya sendiri.
+- **section kosong** → `{ "type": ..., "empty": true }`. **Section gagal** (tabel hulu error) →
+  `{ "type": ..., "empty": true, "error": true }`; section lain tetap terisi dan respons tetap
+  `200`. Respons yang memuat `error` **tidak di-cache**, jadi begitu hulu pulih, request
+  berikutnya langsung benar.
+- **cache 5 menit** (`DS_CACHE_TTL`) per kombinasi parameter yang sudah dinormalisasi:
+  `include=do,co2` dan `include=co2,do` berbagi satu entri, dan `page`/`limit` diabaikan bila
+  `table` tidak diminta.
+
+Hal yang sengaja berbeda dari halaman lama:
+
+| Halaman lama | Endpoint ini | Alasan |
+|---|---|---|
+| `days` disisipkan sebagai string ke `NOW() - INTERVAL … DAY` | batas waktu dihitung di PHP dan di-bind sebagai parameter | tidak ada nilai request yang masuk ke teks SQL |
+| `alignTimeSeries` O(n×m) | two-pointer O(n+m) | hasil identik, termasuk saat seri sama jauh (diuji terhadap versi lama) |
+| celah data jadi 0 (`floatval(null)`), jam tanpa fluks jadi 0 | `null` | 0 terbaca sebagai pengukuran |
+| r korelasi 0 bila tak terdefinisi | `null` | "tidak ada hubungan" ≠ "tidak bisa dihitung" |
+| regresi memasangkan `pasut[i + lag]` dengan `co2[i]` | `co2[i + lag]` dengan `pasut[i]` | arah yang sama dengan CCF yang memilih lag-nya |
+| KPI pasut = `jarak_air` mentah | `jarak_air` (label "Jarak Sensor ke Muka Air") **dan** `pasut` = 420 − jarak | angka KPI sama dengan seri |
+| "kemarin" = hari kalender UTC | hari kalender stasiun (+07:00) | kemarin bagi pembaca di Cilacap |
+| gauge tanpa bacaan dihitung sebagai 0 (DO 0 → "Hipoksik") | `value`, `level`, `color` = `null` | sensor mati bukan air hipoksik |
+
+---
+
 ## Berkas terkait
 
 | Berkas | Isi |
@@ -1141,6 +1234,8 @@ aplikasinya.
 | `app/Services/Bsc/` | logika BSC: rantai opsi, grafik trip, komposisi, frekuensi lebar |
 | `app/Services/Hiupari/` | logika HIUPARI: daftar spesies dan frekuensi panjang |
 | `app/Services/Stsc/` | logika STSC: opsi WPPNRI/komoditas, grafik armada dan produksi |
+| `app/Services/JogoLaut/` | logika JOGO LAUT: repository, statistik, aturan ekosistem, perakit payload |
+| `config/jogolaut.php` | konstanta JOGO LAUT: jendela, zona waktu, ref pasut, geometri chamber, ambang |
 | `app/Models/External/Coast/` | model tabel COAST |
 | `app/Console/Commands/DatasourcesStatus.php` | `php artisan cms:datasources` |
 | `tests/Feature/Datasource/ExternalDatasourceTest.php` | uji registry, guard, middleware |
@@ -1152,4 +1247,6 @@ aplikasinya.
 | `tests/Feature/Bsc/BscApiTest.php` | uji keempat permukaan BSC |
 | `tests/Feature/Hiupari/HiupariApiTest.php` | uji kedua permukaan HIUPARI |
 | `tests/Feature/Stsc/StscApiTest.php` | uji keempat endpoint STSC |
+| `tests/Feature/JogoLaut/JogoLautApiTest.php` | uji endpoint monitoring JOGO LAUT |
+| `tests/Unit/JogoLaut/JogoLautStatsServiceTest.php` | uji statistik JOGO LAUT, termasuk align() vs versi lama |
 | `docs/openapi.yaml` | spesifikasi OpenAPI, publik + eksternal |

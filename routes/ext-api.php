@@ -13,6 +13,7 @@ use App\Http\Controllers\ExtApi\Ikan\CatchChartController;
 use App\Http\Controllers\ExtApi\Ikan\FilterController as IkanFilterController;
 use App\Http\Controllers\ExtApi\Ikan\LengthFrequencyController;
 use App\Http\Controllers\ExtApi\Ikan\TripChartController;
+use App\Http\Controllers\ExtApi\JogoLaut\MonitoringController as JogoLautMonitoringController;
 use App\Http\Controllers\ExtApi\Stsc\ArmadaChartController as StscArmadaChartController;
 use App\Http\Controllers\ExtApi\Stsc\FilterController as StscFilterController;
 use App\Http\Controllers\ExtApi\Stsc\ProduksiChartController as StscProduksiChartController;
@@ -158,6 +159,17 @@ Route::middleware(['resolve.public.tenant', 'throttle:ext-api'])
 
                 // Landed weight per commodity, one line per WPPNRI.
                 Route::get('grafik/produksi', StscProduksiChartController::class)->name('grafik.produksi');
+            });
+
+        // JOGO LAUT — coastal monitoring station, Cilacap: soil and air CO₂,
+        // tide, water quality and weather sensors. One endpoint for the whole
+        // dashboard, trimmed with ?include=; every section is built from the
+        // same time window, so they can be read against each other.
+        Route::middleware(['datasource:jogolaut', $cacheHeaders])
+            ->prefix('jogolaut')
+            ->name('jogolaut.')
+            ->group(function () {
+                Route::get('monitoring', JogoLautMonitoringController::class)->name('monitoring');
             });
 
         // -- datasource groups go here; each one applies $cacheHeaders --

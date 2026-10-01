@@ -27,6 +27,31 @@ class ExternalCacheService
         );
     }
 
+    /**
+     * remember(), except that a value $discard accepts is returned without
+     * being stored — for a payload assembled from parts that can fail
+     * independently, where caching a partial failure would serve it for the
+     * whole TTL after the upstream has recovered.
+     */
+    public function rememberUnless(string $datasource, string $resource, array $query, \Closure $callback, \Closure $discard): mixed
+    {
+        $key = $this->key($datasource, $resource, $query);
+        $miss = new \stdClass;
+        $value = $this->cache->get($key, $miss);
+
+        if ($value !== $miss) {
+            return $value;
+        }
+
+        $value = $callback();
+
+        if (! $discard($value)) {
+            $this->cache->put($key, $value, config('datasources.cache_ttl'));
+        }
+
+        return $value;
+    }
+
     public function forget(string $datasource, string $resource): void
     {
         $this->cache->forget($this->key($datasource, $resource, []));
