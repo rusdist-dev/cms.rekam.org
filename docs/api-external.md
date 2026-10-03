@@ -1197,11 +1197,42 @@ Aturan yang dijamin:
   bukan hex dan bukan kelas ikon. Frontend yang memetakan ke paletnya sendiri.
 - **section kosong** → `{ "type": ..., "empty": true }`. **Section gagal** (tabel hulu error) →
   `{ "type": ..., "empty": true, "error": true }`; section lain tetap terisi dan respons tetap
-  `200`. Respons yang memuat `error` **tidak di-cache**, jadi begitu hulu pulih, request
-  berikutnya langsung benar.
-- **cache 5 menit** (`DS_CACHE_TTL`) per kombinasi parameter yang sudah dinormalisasi:
-  `include=do,co2` dan `include=co2,do` berbagi satu entri, dan `page`/`limit` diabaikan bila
-  `table` tidak diminta.
+  `200`. Section gagal **tidak pernah di-cache**.
+- **satu respons = satu snapshot.** Semua section membaca data dari blok waktu 5 menit yang
+  sama (`meta.snapshot_at`), jadi outlier di `analysis` pasti ada di grafik `co2`.
+
+#### Cache bertingkat dan ketahanan
+
+Kode: `app/Services/JogoLaut/JogoLautSnapshot.php`. Tidak ada cache respons utuh, karena key
+semacam itu berlipat ganda untuk setiap kombinasi `include` dan mudah di-bust. Yang ada dua tingkat,
+keduanya di-key dengan blok waktu `floor(now / JOGOLAUT_CACHE_TTL)`:
+
+| Tingkat | Key | Isi |
+|---|---|---|
+| bacaan hulu | tabel + `days` (+ `page`/`limit` untuk tabel data) | baris mentah. **Hanya di tingkat ini query ke hulu terjadi** |
+| section | section + parameter yang benar-benar dipakai + `locale` | section jadi. `kpi` tidak peduli `window`, `windrose` tidak peduli `page` |
+
+Akibatnya, memvariasikan `include`, `window`, atau `locale` hanya memakan CPU di server ini,
+tidak pernah menambah query ke hulu. Blok baru selalu mulai bersih tanpa perlu invalidasi.
+
+Perlindungan untuk hulu:
+
+- **lock per bacaan.** Saat cache kosong, satu proses membaca, yang lain menunggu (maks.
+  `lock_wait` = 10 detik), lalu memakai hasilnya. Bila pemegang lock macet, peminta membaca
+  sendiri alih-alih ikut menggantung.
+- **tabel yang gagal ditandai "down"** selama `JOGOLAUT_FAILURE_TTL` (30 detik). Dalam
+  rentang itu, section yang bergantung padanya langsung `error` tanpa menyentuh hulu. Dalam satu
+  request, tabel mati hanya dicoba **sekali**, walau enam section memakainya.
+- **timeout koneksi** `DS_JOGOLAUT_TIMEOUT` (5 detik, `PDO::ATTR_TIMEOUT`). Ini hanya timeout
+  *koneksi*. Timeout per query tidak dipasang karena caranya berbeda antara MySQL
+  (`max_execution_time`) dan MariaDB (`max_statement_time`), dan variabel yang salah membuat
+  koneksi gagal total.
+
+**Warm-up terjadwal**: `php artisan cms:jogolaut-warm` membangun payload default (semua
+section, `days`/`window` default, `id` dan `en`) setiap kali blok baru dibuka. Blok selaras
+dengan menit cron, jadi pengunjung hampir selalu membaca cache yang sudah terisi. Perintah ini
+dilewati diam-diam bila datasource belum dikonfigurasi, dan keluar dengan kode gagal bila ada
+section yang error. Butuh cron `schedule:run` (lihat `docs/deploy.md` §6).
 
 Hal yang sengaja berbeda dari halaman lama:
 

@@ -155,7 +155,9 @@ WantedBy=multi-user.target
 
 `app/Console/Kernel.php` menjadwalkan `activitylog:clean` harian (menghapus baris
 `activity_log` yang lebih tua dari `config('activitylog.delete_records_older_than_days')`,
-saat ini 365 hari). Daftarkan satu entri cron standar Laravel:
+saat ini 365 hari), dan `cms:jogolaut-warm` setiap 5 menit (mengisi cache payload monitoring
+JOGO LAUT; dilewati bila `DS_JOGOLAUT_DATABASE` kosong). Daftarkan satu entri cron standar
+Laravel:
 
 ```cron
 * * * * * cd /var/www/cms.rekam.org && php artisan schedule:run >> /dev/null 2>&1

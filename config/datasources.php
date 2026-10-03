@@ -159,6 +159,12 @@ return [
                 'database' => env('DS_JOGOLAUT_DATABASE'),
                 'username' => env('DS_JOGOLAUT_USERNAME'),
                 'password' => env('DS_JOGOLAUT_PASSWORD'),
+                // Connect timeout, seconds. Without it an unreachable host
+                // holds every request for the driver default (often a
+                // minute) — and the monitoring payload reads seven tables.
+                'options' => [
+                    PDO::ATTR_TIMEOUT => (int) env('DS_JOGOLAUT_TIMEOUT', 5),
+                ],
             ],
         ],
     ],

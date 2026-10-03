@@ -4,6 +4,7 @@ namespace App\Services\JogoLaut;
 
 use App\Services\JogoLaut\JogoLautEcosystemService as Eco;
 use App\Services\JogoLaut\JogoLautStatsService as Stats;
+use Closure;
 use DateTimeImmutable;
 use DateTimeZone;
 use Throwable;
@@ -17,10 +18,14 @@ use Throwable;
  * frontend decides how to draw it. Keys are stable snake_case; labels follow
  * `locale` and may change.
  *
- * Only the requested sections are built, and each upstream table is read at
- * most once per build however many sections use it. A section that throws is
- * reported as `{type, empty: true, error: true}` instead of failing the
- * response — and the controller does not cache a payload that carries one.
+ * Caching is two-tiered, both tiers keyed by the same time bucket (see
+ * JogoLautSnapshot): upstream reads are cached per table and `days`, and each
+ * built section is cached under only the parameters it actually depends on
+ * (SECTION_PARAMS). There is no whole-response cache — assembling cached
+ * sections is cheap, and a response key would multiply with every `include`.
+ *
+ * A section that throws is reported as `{type, empty: true, error: true}`
+ * instead of failing the response, and is never cached.
  */
 class JogoLautMonitoringService
 {
@@ -40,6 +45,28 @@ class JogoLautMonitoringService
         'kpi' => 'stats',
         'gauges' => 'stats',
         'table' => 'table',
+    ];
+
+    /**
+     * The request parameters each section's result depends on — and so its
+     * cache key. `locale` is added to every one. A section that uses the
+     * smoothed tide depends on `window`; only the table pages.
+     */
+    private const SECTION_PARAMS = [
+        'co2' => ['days', 'window'],
+        'flux' => ['days'],
+        'do' => ['days', 'window'],
+        'ph' => ['days', 'window'],
+        'ctd' => ['days', 'window'],
+        'atm' => ['days'],
+        'diurnal' => ['days'],
+        'windrose' => ['days'],
+        'correlation' => ['days', 'window'],
+        'analysis' => ['days', 'window'],
+        'ecosystem' => ['days', 'window'],
+        'kpi' => ['days'],
+        'gauges' => ['days'],
+        'table' => ['days', 'page', 'limit'],
     ];
 
     /** Series key => [unit, decimals]. Labels come from lang/{locale}/jogolaut.php. */
@@ -96,18 +123,29 @@ class JogoLautMonitoringService
 
     private const CCF_MAX_LAG = 20;
 
-    /** @var array<string, mixed> per-build memo of upstream reads */
+    /**
+     * Per-build memo of upstream reads — a value, or the exception the read
+     * threw, so six sections over one dead table fail once, not six times.
+     *
+     * @var array<string, mixed>
+     */
     private array $memo = [];
 
     private array $params;
 
     private int $now;
 
+    /** Start of the cache bucket; the window is measured back from here. */
+    private int $bucket;
+
     private int $from;
 
     private int $offset;
 
-    public function __construct(private readonly JogoLautRepository $repository) {}
+    public function __construct(
+        private readonly JogoLautRepository $repository,
+        private readonly JogoLautSnapshot $snapshot,
+    ) {}
 
     /**
      * @param  array{include: array<int, string>, days: int, window: int, page: int, limit: int, locale: string}  $params
@@ -117,7 +155,8 @@ class JogoLautMonitoringService
         $this->memo = [];
         $this->params = $params;
         $this->now = now()->getTimestamp();
-        $this->from = $this->now - $params['days'] * 86400;
+        $this->bucket = $this->snapshot->bucket($this->now);
+        $this->from = $this->bucket - $params['days'] * 86400;
         $this->offset = (new DateTimeZone(config('jogolaut.timezone')))->getOffset(new DateTimeImmutable('@'.$this->now));
 
         $sections = [];
@@ -132,11 +171,32 @@ class JogoLautMonitoringService
             'meta' => [
                 'generated_at' => $this->format($this->now),
                 'timezone' => config('jogolaut.timezone'),
+                // Every section in this response reads the snapshot taken in
+                // the bucket that opened at `snapshot_at`.
+                'snapshot_at' => $this->format($this->bucket),
                 'from' => $this->format($this->from),
                 'to' => $this->format($this->now),
                 'params' => $params,
             ],
             'sections' => $sections,
+        ];
+    }
+
+    /**
+     * What a request with no query string asks for — shared by the request
+     * class and the warm-up, so the payload warmed is the one actually served.
+     *
+     * @return array{include: array<int, string>, days: int, window: int, page: int, limit: int, locale: string}
+     */
+    public static function defaults(string $locale = 'id'): array
+    {
+        return [
+            'include' => array_keys(self::SECTIONS),
+            'days' => (int) config('jogolaut.data_interval_days'),
+            'window' => 11,
+            'page' => 1,
+            'limit' => 10,
+            'locale' => $locale,
         ];
     }
 
@@ -155,14 +215,26 @@ class JogoLautMonitoringService
     private function section(string $key): array
     {
         $type = self::SECTIONS[$key];
+        $params = array_intersect_key($this->params, array_flip([...self::SECTION_PARAMS[$key], 'locale']));
+
+        if (($cached = $this->snapshot->getSection($this->bucket, $key, $params)) !== null) {
+            return $cached;
+        }
 
         try {
-            return $this->{'build'.ucfirst($key)}() ?? ['type' => $type, 'empty' => true];
+            $section = $this->{'build'.ucfirst($key)}() ?? ['type' => $type, 'empty' => true];
         } catch (Throwable $e) {
-            report($e);
+            // An unavailable source was reported where it failed.
+            if (! $e instanceof JogoLautSourceUnavailable) {
+                report($e);
+            }
 
             return ['type' => $type, 'empty' => true, 'error' => true];
         }
+
+        $this->snapshot->putSection($this->bucket, $key, $params, $section);
+
+        return $section;
     }
 
     // -- time-series sections ---------------------------------------------
@@ -617,7 +689,11 @@ class JogoLautMonitoringService
     {
         $limit = $this->params['limit'];
         $page = $this->params['page'];
-        $result = $this->repository->co2Page($this->from, $limit, ($page - 1) * $limit);
+        $result = $this->load(
+            'data_co2_page',
+            fn () => $this->repository->co2Page($this->from, $limit, ($page - 1) * $limit),
+            ['page' => $page, 'limit' => $limit],
+        );
 
         if ($result['total'] === 0) {
             return null;
@@ -655,43 +731,74 @@ class JogoLautMonitoringService
         ];
     }
 
-    // -- upstream reads, each memoised for the build -----------------------
+    // -- upstream reads: cached via the snapshot, memoised for the build ------
+
+    /**
+     * One upstream read. Within a build, a read happens at most once — and a
+     * read that failed fails again instantly for every other section that
+     * needs it. Across builds, JogoLautSnapshot caches it per bucket.
+     *
+     * @param  array<string, scalar>  $params  beyond `days`, what changes the result
+     */
+    private function load(string $source, Closure $fetch, array $params = []): mixed
+    {
+        $memoKey = $source.':'.http_build_query($params);
+
+        if (array_key_exists($memoKey, $this->memo)) {
+            if ($this->memo[$memoKey] instanceof Throwable) {
+                throw $this->memo[$memoKey];
+            }
+
+            return $this->memo[$memoKey];
+        }
+
+        try {
+            return $this->memo[$memoKey] = $this->snapshot->remember(
+                $this->bucket,
+                $source,
+                ['days' => $this->params['days']] + $params,
+                $fetch,
+            );
+        } catch (Throwable $e) {
+            $this->memo[$memoKey] = $e;
+
+            throw $e;
+        }
+    }
 
     private function co2(): array
     {
-        return $this->memo['co2'] ??= $this->repository->series('data_co2', 'waktu', [
+        return $this->load('data_co2', fn () => $this->repository->series('data_co2', 'waktu', [
             'co2_tanah' => 'co2',
             'soil_moisture' => 'soil_moisture',
             'soil_ph' => 'soil_ph',
             'soil_temp' => 'soil_temp',
             'temp_air' => 'temp_air',
             'humidity' => 'humidity',
-        ], $this->from);
+        ], $this->from));
     }
 
     private function scd41(): array
     {
-        return $this->memo['scd41'] ??= $this->repository->series('scd41_data', 'created_at', [
+        return $this->load('scd41_data', fn () => $this->repository->series('scd41_data', 'created_at', [
             'co2_udara' => 'co2',
             'suhu_udara' => 'temperature',
             'kelembaban' => 'humidity',
-        ], $this->from);
+        ], $this->from));
     }
 
     /** Tide level: the reference height minus the gauge's distance to water. */
     private function pasut(): array
     {
-        if (! isset($this->memo['pasut'])) {
+        return $this->load('pasut', function () {
             $rows = $this->repository->series('pasut', 'waktu', ['jarak_air' => 'jarak_air'], $this->from);
             $ref = (float) config('jogolaut.ref_pasut');
 
-            $this->memo['pasut'] = [
+            return [
                 'ts' => $rows['ts'],
                 'values' => ['pasut' => array_map(fn ($v) => $v === null ? null : $ref - $v, $rows['values']['jarak_air'])],
             ];
-        }
-
-        return $this->memo['pasut'];
+        });
     }
 
     /**
@@ -715,33 +822,33 @@ class JogoLautMonitoringService
 
     private function dissolved(): array
     {
-        return $this->memo['do'] ??= $this->repository->series('dissolve_oxygen', 'waktu', [
+        return $this->load('dissolve_oxygen', fn () => $this->repository->series('dissolve_oxygen', 'waktu', [
             'do' => 'do_air',
             'suhu_air' => 'suhu_air',
-        ], $this->from);
+        ], $this->from));
     }
 
     private function ph(): array
     {
-        return $this->memo['ph'] ??= $this->repository->series('ph_air', 'waktu', [
+        return $this->load('ph_air', fn () => $this->repository->series('ph_air', 'waktu', [
             'ph' => 'ph',
             'suhu_air' => 'suhu_air',
-        ], $this->from);
+        ], $this->from));
     }
 
     private function ctd(): array
     {
-        return $this->memo['ctd'] ??= $this->repository->series('ctd', 'waktu', [
+        return $this->load('ctd', fn () => $this->repository->series('ctd', 'waktu', [
             'conductivity' => 'conductivity',
             'suhu_air' => 'suhu_air',
             'level_air' => 'level_air',
-        ], $this->from);
+        ], $this->from));
     }
 
     /** Weather mast. Wind speed is stored in cm/s. */
     private function menara(): array
     {
-        if (! isset($this->memo['menara'])) {
+        return $this->load('menara', function () {
             $rows = $this->repository->series('menara', 'waktu', [
                 'kec_angin' => 'kec_angin',
                 'arah_angin' => 'arah_angin',
@@ -749,23 +856,20 @@ class JogoLautMonitoringService
             ], $this->from);
 
             $rows['values']['kec_angin'] = array_map(fn ($v) => $v === null ? null : $v / 100, $rows['values']['kec_angin']);
-            $this->memo['menara'] = $rows;
-        }
 
-        return $this->memo['menara'];
+            return $rows;
+        });
     }
 
     private function summary(): array
     {
-        if (! isset($this->memo['summary'])) {
+        return $this->load('summary', function () {
             // "Yesterday" is the station's calendar day, not the UTC one.
             $tz = new DateTimeZone(config('jogolaut.timezone'));
-            $today = (new DateTimeImmutable('@'.$this->now))->setTimezone($tz)->setTime(0, 0)->getTimestamp();
+            $today = (new DateTimeImmutable('@'.$this->bucket))->setTimezone($tz)->setTime(0, 0)->getTimestamp();
 
-            $this->memo['summary'] = $this->repository->summary($this->from, $today - 86400, $today);
-        }
-
-        return $this->memo['summary'];
+            return $this->repository->summary($this->from, $today - 86400, $today);
+        });
     }
 
     // -- shaping ----------------------------------------------------------

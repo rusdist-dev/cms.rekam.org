@@ -1278,7 +1278,15 @@ paths:
 
         A section with no data is `{type, empty: true}`; one that failed
         upstream is `{type, empty: true, error: true}` and does not fail the
-        response. A payload carrying an `error` is never cached.
+        response. A failed section is never cached; the failed upstream table
+        is not retried for 30 seconds.
+
+
+        Every section in one response reads the same five-minute snapshot
+        (`meta.snapshot_at`), so figures from different sections always
+        describe the same data. Upstream reads are cached per table and
+        `days`, sections per the parameters they use: varying `include`,
+        `window` or `locale` never adds a query upstream.
       parameters:
         - name: include
           in: query
@@ -1299,7 +1307,7 @@ paths:
         - name: page
           in: query
           description: Page of the `table` section. Ignored unless `table` is included.
-          schema: { type: integer, minimum: 1, default: 1 }
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 1 }
         - name: limit
           in: query
           description: Rows per page of the `table` section.
@@ -2451,8 +2459,12 @@ components:
         meta:
           type: object
           properties:
-            generated_at: { type: string, example: '2026-10-01 12:00:00' }
+            generated_at: { type: string, example: '2026-10-01 12:03:41' }
             timezone: { type: string, example: '+07:00' }
+            snapshot_at:
+              type: string
+              description: Start of the snapshot bucket every section was read in. The window is measured back from here.
+              example: '2026-10-01 12:00:00'
             from: { type: string, example: '2026-09-24 12:00:00' }
             to: { type: string, example: '2026-10-01 12:00:00' }
             params:

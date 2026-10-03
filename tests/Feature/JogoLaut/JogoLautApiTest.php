@@ -2,9 +2,14 @@
 
 namespace Tests\Feature\JogoLaut;
 
+use App\Services\DatasourceRegistry;
+use App\Services\JogoLaut\JogoLautRepository;
+use App\Services\JogoLaut\JogoLautSnapshot;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Sleep;
 use Tests\TenantTestCase;
 
 /**
@@ -313,7 +318,7 @@ class JogoLautApiTest extends TenantTestCase
         $this->assertArrayHasKey('x', $sections['ph']);
     }
 
-    public function test_a_failing_section_is_isolated_and_not_cached(): void
+    public function test_a_failing_section_is_isolated_and_retried_once_the_failure_expires(): void
     {
         $this->writable(fn ($db) => $db->statement('drop table ph_air'));
 
@@ -322,13 +327,105 @@ class JogoLautApiTest extends TenantTestCase
         $this->assertSame(['type' => 'timeseries', 'empty' => true, 'error' => true], $sections['ph']);
         $this->assertArrayHasKey('x', $sections['ctd']);
 
-        // Upstream recovers: the next request must not be served the failure.
         $this->writable(function ($db) {
             $db->statement('create table ph_air (waktu text, ph real, suhu_air real)');
             $db->table('ph_air')->insert(['waktu' => '2026-10-01 04:00:00', 'ph' => 7.8, 'suhu_air' => 29]);
         });
 
-        $this->assertArrayHasKey('x', $this->sections(['include' => 'ph,ctd'])['ph']);
+        // Within failure_ttl the table is still treated as down, not retried…
+        $this->assertTrue($this->sections(['include' => 'ph'])['ph']['error'] ?? false);
+
+        // …and once it lapses, the failure was never cached as a result.
+        $this->travel(31)->seconds();
+        $this->assertArrayHasKey('x', $this->sections(['include' => 'ph'])['ph']);
+    }
+
+    public function test_a_dead_table_is_read_once_however_many_sections_need_it(): void
+    {
+        $this->writable(fn ($db) => $db->statement('drop table data_co2'));
+
+        // A failed query fires no QueryExecuted event, so count the attempts
+        // at the repository instead.
+        $attempts = $this->countSeriesCalls();
+
+        $this->sections();
+        $this->assertSame(1, $attempts->counts['data_co2'] ?? 0);
+
+        // Every section built on soil CO₂ fails; the others are untouched.
+        $sections = $this->sections();
+        foreach (['co2', 'flux', 'diurnal', 'correlation', 'analysis'] as $key) {
+            $this->assertTrue($sections[$key]['error'] ?? false, $key);
+        }
+        $this->assertArrayHasKey('x', $sections['atm']);
+
+        // While it is marked down, further requests do not touch it at all.
+        $this->assertSame(1, $attempts->counts['data_co2']);
+    }
+
+    public function test_varying_parameters_never_reaches_upstream_twice(): void
+    {
+        $this->sections();
+
+        $reads = $this->countReads(null, function () {
+            $this->sections(['include' => 'do,co2']);
+            $this->sections(['include' => 'correlation,analysis', 'window' => 5]);
+            $this->sections(['window' => 21, 'locale' => 'en']);
+        });
+
+        $this->assertSame(0, $reads);
+    }
+
+    public function test_every_section_reads_the_snapshot_of_its_bucket(): void
+    {
+        $first = $this->sections(['include' => 'co2']);
+
+        $this->writable(fn ($db) => $db->table('data_co2')->delete());
+
+        // Same five-minute bucket: the same snapshot, whatever happened upstream.
+        $this->travel(4)->minutes();
+        $this->assertSame($first, $this->sections(['include' => 'co2']));
+
+        // Next bucket: read afresh.
+        $this->travel(1)->minutes();
+        $this->assertSame(['type' => 'timeseries', 'empty' => true], $this->sections(['include' => 'co2'])['co2']);
+        $this->assertSame('2026-10-01 12:05:00', $this->fetch()->json('data.meta.snapshot_at'));
+    }
+
+    public function test_a_stuck_lock_holder_does_not_block_the_request(): void
+    {
+        Config::set('jogolaut.cache.lock_wait', 1);
+        // Lock::block() measures its wait on the (frozen) Carbon clock; let
+        // each poll's sleep move that clock instead of really sleeping.
+        Sleep::fake(syncWithCarbon: true);
+
+        // Another process "holds" every read of this bucket and never finishes.
+        $snapshot = app(JogoLautSnapshot::class);
+        $bucket = $snapshot->bucket(now()->getTimestamp());
+        Cache::lock("ext:jogolaut:raw:{$bucket}:menara:days=7:lock", 60)->get();
+
+        $this->assertArrayHasKey('x', $this->sections(['include' => 'atm'])['atm']);
+    }
+
+    public function test_the_warm_up_fills_the_cache_for_the_default_payload(): void
+    {
+        $this->artisan('cms:jogolaut-warm')->assertSuccessful();
+
+        $this->assertSame(0, $this->countReads(null, function () {
+            $this->sections();
+            $this->sections(['locale' => 'en', 'include' => 'kpi,gauges']);
+        }));
+    }
+
+    public function test_the_warm_up_skips_an_unconfigured_datasource(): void
+    {
+        Config::set('datasources.sources.jogolaut.connection.database', null);
+
+        $this->artisan('cms:jogolaut-warm')->assertSuccessful();
+    }
+
+    public function test_page_is_bounded(): void
+    {
+        $this->fetch(['include' => 'table', 'page' => 10001])->assertStatus(422)->assertJsonValidationErrors('page');
     }
 
     public function test_responses_are_cached_per_normalised_parameters(): void
@@ -350,6 +447,48 @@ class JogoLautApiTest extends TenantTestCase
     }
 
     // -- fixture -----------------------------------------------------------
+
+    /** Swaps in a repository that counts series() calls per table, failed or not. */
+    private function countSeriesCalls(): JogoLautRepository
+    {
+        $repository = new class(app(DatasourceRegistry::class)) extends JogoLautRepository
+        {
+            public array $counts = [];
+
+            public function series(string $table, string $timeColumn, array $columns, int $from): array
+            {
+                $this->counts[$table] = ($this->counts[$table] ?? 0) + 1;
+
+                return parent::series($table, $timeColumn, $columns, $from);
+            }
+        };
+
+        $this->app->instance(JogoLautRepository::class, $repository);
+
+        return $repository;
+    }
+
+    /** SELECTs sent upstream while $callback runs — against one table, or any. */
+    private function countReads(?string $table, \Closure $callback): int
+    {
+        $count = 0;
+
+        DB::listen(function ($query) use ($table, &$count) {
+            $sql = strtolower($query->sql);
+
+            if ($query->connectionName === 'ds_jogolaut'
+                && str_starts_with(ltrim($sql), 'select')
+                && ($table === null || str_contains($sql, "\"{$table}\""))) {
+                $count++;
+            }
+        });
+
+        $callback();
+
+        // The listener outlives this call (listeners cannot be removed), but
+        // what it counts afterwards no longer reaches anyone.
+        return $count;
+    }
 
     private function writable(\Closure $callback): void
     {

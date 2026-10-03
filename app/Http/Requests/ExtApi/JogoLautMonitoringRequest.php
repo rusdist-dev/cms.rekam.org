@@ -39,7 +39,10 @@ class JogoLautMonitoringRequest extends FormRequest
                     $fail('window harus bilangan ganjil agar rata-rata bergeraknya terpusat.');
                 }
             }],
-            'page' => ['nullable', 'integer', 'min:1'],
+            // 30 days of 5-minute readings is 8,640 rows: even at limit=1 no
+            // real page lies past this, and an unbounded page overflows the
+            // offset arithmetic.
+            'page' => ['nullable', 'integer', 'min:1', 'max:10000'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
             'locale' => ['nullable', 'in:'.implode(',', self::LOCALES)],
         ];
@@ -54,6 +57,7 @@ class JogoLautMonitoringRequest extends FormRequest
             'window.integer' => 'window harus bilangan bulat.',
             'window.min' => 'window minimal 3.',
             'window.max' => 'window maksimal 99.',
+            'page.max' => 'page maksimal :max.',
             'locale.in' => 'locale harus id atau en.',
         ];
     }
@@ -67,20 +71,21 @@ class JogoLautMonitoringRequest extends FormRequest
      */
     public function params(): array
     {
+        $defaults = JogoLautMonitoringService::defaults($this->query('locale') ?: 'id');
         $requested = $this->split((string) $this->query('include', ''));
         $include = $requested === []
-            ? array_keys(JogoLautMonitoringService::SECTIONS)
-            : array_values(array_intersect(array_keys(JogoLautMonitoringService::SECTIONS), $requested));
+            ? $defaults['include']
+            : array_values(array_intersect($defaults['include'], $requested));
 
         $withTable = in_array('table', $include, true);
 
         return [
             'include' => $include,
-            'days' => (int) ($this->query('days') ?: config('jogolaut.data_interval_days')),
-            'window' => (int) ($this->query('window') ?: 11),
-            'page' => $withTable ? (int) ($this->query('page') ?: 1) : 1,
-            'limit' => $withTable ? (int) ($this->query('limit') ?: 10) : 10,
-            'locale' => $this->query('locale') ?: 'id',
+            'days' => (int) ($this->query('days') ?: $defaults['days']),
+            'window' => (int) ($this->query('window') ?: $defaults['window']),
+            'page' => $withTable ? (int) ($this->query('page') ?: $defaults['page']) : $defaults['page'],
+            'limit' => $withTable ? (int) ($this->query('limit') ?: $defaults['limit']) : $defaults['limit'],
+            'locale' => $defaults['locale'],
         ];
     }
 

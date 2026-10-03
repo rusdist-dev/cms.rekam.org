@@ -37,6 +37,25 @@ return [
     // Two series are matched only when their readings are this close.
     'align_threshold_seconds' => 3600,
 
+    /*
+    | Caching and upstream protection (App\Services\JogoLaut\JogoLautSnapshot).
+    |
+    | ttl          length of a snapshot bucket, seconds. Sensors report every
+    |              five minutes, so a shorter bucket buys nothing. The warm-up
+    |              (cms:jogolaut-warm) is scheduled once per bucket.
+    | failure_ttl  how long a failed upstream read is answered from memory
+    |              ("down") instead of being retried.
+    | lock_wait    how long a request waits for another one already reading
+    |              the same table before reading it itself.
+    | lock_ttl     safety release for a lock whose holder died.
+    */
+    'cache' => [
+        'ttl' => (int) env('JOGOLAUT_CACHE_TTL', 300),
+        'failure_ttl' => (int) env('JOGOLAUT_FAILURE_TTL', 30),
+        'lock_wait' => 10,
+        'lock_ttl' => 60,
+    ],
+
     // Hourly flux smoothing, and the trend thresholds of the ecosystem status.
     'ma_window' => 3,
     'co2_trend_threshold' => 2,
