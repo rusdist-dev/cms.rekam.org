@@ -78,7 +78,7 @@ Route::middleware(['web', 'auth', 'active', 'tenant'])
             Route::get('users', [UserApiController::class, 'index'])->name('users.index');
             Route::get('users/{user}', [UserApiController::class, 'show'])->whereNumber('user')->name('users.show');
             Route::post('users', [UserApiController::class, 'store'])->name('users.store');
-            Route::put('users/{user}', [UserApiController::class, 'update'])->whereNumber('user')->name('users.update');
+            Route::match(['put', 'post'], 'users/{user}', [UserApiController::class, 'update'])->whereNumber('user')->name('users.update');
             Route::delete('users/{user}', [UserApiController::class, 'destroy'])->whereNumber('user')->name('users.destroy');
         });
 
@@ -87,14 +87,14 @@ Route::middleware(['web', 'auth', 'active', 'tenant'])
             Route::get('roles', [RoleApiController::class, 'index'])->name('roles.index');
             Route::get('roles/{role}', [RoleApiController::class, 'show'])->whereNumber('role')->name('roles.show');
             Route::post('roles', [RoleApiController::class, 'store'])->name('roles.store');
-            Route::put('roles/{role}', [RoleApiController::class, 'update'])->whereNumber('role')->name('roles.update');
+            Route::match(['put', 'post'], 'roles/{role}', [RoleApiController::class, 'update'])->whereNumber('role')->name('roles.update');
             Route::delete('roles/{role}', [RoleApiController::class, 'destroy'])->whereNumber('role')->name('roles.destroy');
         });
 
         Route::middleware('permission:tenants.view')->group(function () {
             Route::get('tenants', [TenantApiController::class, 'index'])->name('tenants.index');
             Route::get('tenants/{tenant}', [TenantApiController::class, 'show'])->whereNumber('tenant')->name('tenants.show');
-            Route::put('tenants/{tenant}', [TenantApiController::class, 'update'])->whereNumber('tenant')->name('tenants.update');
+            Route::match(['put', 'post'], 'tenants/{tenant}', [TenantApiController::class, 'update'])->whereNumber('tenant')->name('tenants.update');
             Route::post('tenants/{tenant}/api-key', [TenantApiController::class, 'rotateApiKey'])
                 ->whereNumber('tenant')->name('tenants.api-key');
         });
